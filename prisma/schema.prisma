@@ -56,7 +56,6 @@ model PersonRelation {
   toPersonId   String
   relationType RelationType
   urutan       Int           @default(1)
-  status       RelationStatus @default(ACTIVE)
 
   fromPerson   Person        @relation("FromPerson", fields: [fromPersonId], references: [id], onDelete: Cascade)
   toPerson     Person        @relation("ToPerson", fields: [toPersonId], references: [id], onDelete: Cascade)
@@ -69,9 +68,4 @@ model PersonRelation {
 enum RelationType {
   PASANGAN
   ORANGTUA_ANAK
-}
-
-enum RelationStatus {
-  ACTIVE
-  ENDED
 }

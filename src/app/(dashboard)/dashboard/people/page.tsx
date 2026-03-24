@@ -7,9 +7,9 @@ import {
   Edit2, 
   Trash2, 
   ChevronLeft, 
-  ChevronRight,
-  X
+  ChevronRight
 } from 'lucide-react'
+import { Dialog, ConfirmDialog } from '@/components/dialog'
 
 type Person = {
   id: string
@@ -30,6 +30,8 @@ export default function PeoplePage() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [showModal, setShowModal] = useState(false)
+  const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [error, setError] = useState('')
   const [editingPerson, setEditingPerson] = useState<Person | null>(null)
   const [formData, setFormData] = useState({
     fullname: '',
@@ -67,6 +69,7 @@ export default function PeoplePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError('')
     try {
       const url = editingPerson ? `/api/people/${editingPerson.id}` : '/api/people'
       const method = editingPerson ? 'PUT' : 'POST'
@@ -84,10 +87,11 @@ export default function PeoplePage() {
         fetchPeople()
       } else {
         const data = await res.json()
-        alert(data.error || 'Terjadi kesalahan')
+        setError(data.error || 'Terjadi kesalahan')
       }
     } catch (error) {
       console.error('Error saving person:', error)
+      setError('Terjadi kesalahan')
     }
   }
 
@@ -106,16 +110,18 @@ export default function PeoplePage() {
     setShowModal(true)
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Apakah Anda yakin ingin menghapus data ini?')) return
+  const handleDelete = async () => {
+    if (!deleteId) return
     
     try {
-      const res = await fetch(`/api/people/${id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/people/${deleteId}`, { method: 'DELETE' })
       if (res.ok) {
         fetchPeople()
       }
     } catch (error) {
       console.error('Error deleting person:', error)
+    } finally {
+      setDeleteId(null)
     }
   }
 
@@ -130,6 +136,7 @@ export default function PeoplePage() {
       hometown: '',
       domicile: ''
     })
+    setError('')
   }
 
   const openModal = () => {
@@ -220,7 +227,7 @@ export default function PeoplePage() {
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => handleDelete(person.id)}
+                        onClick={() => setDeleteId(person.id)}
                         className="p-2 text-[#6B7280] hover:text-[#EF4444] hover:bg-red-50 rounded-lg transition-colors"
                         title="Hapus"
                       >
@@ -257,117 +264,134 @@ export default function PeoplePage() {
         </div>
       )}
 
-      {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-[#E5E7EB] flex items-center justify-between">
-              <h2 className="text-xl font-bold text-[#2D3142]">
-                {editingPerson ? 'Edit Anggota' : 'Tambah Anggota'}
-              </h2>
-              <button onClick={() => setShowModal(false)} className="p-2 hover:bg-[#F4F1DE] rounded-lg">
-                <X className="w-5 h-5" />
-              </button>
+      <Dialog
+        open={showModal}
+        onClose={() => { setShowModal(false); setEditingPerson(null); resetForm(); }}
+        title={editingPerson ? 'Edit Anggota' : 'Tambah Anggota'}
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => { setShowModal(false); setEditingPerson(null); resetForm(); }}
+              className="btn btn-ghost flex-1"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              form="person-form"
+              className="btn btn-primary flex-1"
+            >
+              Simpan
+            </button>
+          </>
+        }
+      >
+        <form id="person-form" onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
+              {error}
             </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <label className="label">Nama Lengkap *</label>
-                  <input
-                    type="text"
-                    value={formData.fullname}
-                    onChange={(e) => setFormData({ ...formData, fullname: e.target.value })}
-                    className="input"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="label">Nama Panggilan</label>
-                  <input
-                    type="text"
-                    value={formData.callName}
-                    onChange={(e) => setFormData({ ...formData, callName: e.target.value })}
-                    className="input"
-                  />
-                </div>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <label className="label">Jenis Kelamin *</label>
-                  <select
-                    value={formData.gender}
-                    onChange={(e) => setFormData({ ...formData, gender: e.target.value as 'MALE' | 'FEMALE' })}
-                    className="input"
-                    required
-                  >
-                    <option value="MALE">Laki-laki</option>
-                    <option value="FEMALE">Perempuan</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="label">Pekerjaan</label>
-                  <input
-                    type="text"
-                    value={formData.occupation}
-                    onChange={(e) => setFormData({ ...formData, occupation: e.target.value })}
-                    className="input"
-                  />
-                </div>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <label className="label">Tanggal Lahir</label>
-                  <input
-                    type="date"
-                    value={formData.dateOfBirth}
-                    onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-                    className="input"
-                  />
-                </div>
-                <div>
-                  <label className="label">Tanggal Wafat</label>
-                  <input
-                    type="date"
-                    value={formData.dateOfDeath}
-                    onChange={(e) => setFormData({ ...formData, dateOfDeath: e.target.value })}
-                    className="input"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="label">Kampung Halaman</label>
-                <input
-                  type="text"
-                  value={formData.hometown}
-                  onChange={(e) => setFormData({ ...formData, hometown: e.target.value })}
-                  className="input"
-                />
-              </div>
-
-              <div>
-                <label className="label">Domisili</label>
-                <input
-                  type="text"
-                  value={formData.domicile}
-                  onChange={(e) => setFormData({ ...formData, domicile: e.target.value })}
-                  className="input"
-                />
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <button type="button" onClick={() => setShowModal(false)} className="btn btn-ghost flex-1">
-                  Batal
-                </button>
-                <button type="submit" className="btn btn-primary flex-1">
-                  Simpan
-                </button>
-              </div>
-            </form>
+          )}
+          
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <label className="label">Nama Lengkap *</label>
+              <input
+                type="text"
+                value={formData.fullname}
+                onChange={(e) => setFormData({ ...formData, fullname: e.target.value })}
+                className="input"
+                required
+              />
+            </div>
+            <div>
+              <label className="label">Nama Panggilan</label>
+              <input
+                type="text"
+                value={formData.callName}
+                onChange={(e) => setFormData({ ...formData, callName: e.target.value })}
+                className="input"
+              />
+            </div>
           </div>
-        </div>
-      )}
+
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <label className="label">Jenis Kelamin *</label>
+              <select
+                value={formData.gender}
+                onChange={(e) => setFormData({ ...formData, gender: e.target.value as 'MALE' | 'FEMALE' })}
+                className="input"
+                required
+              >
+                <option value="MALE">Laki-laki</option>
+                <option value="FEMALE">Perempuan</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">Pekerjaan</label>
+              <input
+                type="text"
+                value={formData.occupation}
+                onChange={(e) => setFormData({ ...formData, occupation: e.target.value })}
+                className="input"
+              />
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <label className="label">Tanggal Lahir</label>
+              <input
+                type="date"
+                value={formData.dateOfBirth}
+                onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                className="input"
+              />
+            </div>
+            <div>
+              <label className="label">Tanggal Wafat</label>
+              <input
+                type="date"
+                value={formData.dateOfDeath}
+                onChange={(e) => setFormData({ ...formData, dateOfDeath: e.target.value })}
+                className="input"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="label">Kampung Halaman</label>
+            <input
+              type="text"
+              value={formData.hometown}
+              onChange={(e) => setFormData({ ...formData, hometown: e.target.value })}
+              className="input"
+            />
+          </div>
+
+          <div>
+            <label className="label">Domisili</label>
+            <input
+              type="text"
+              value={formData.domicile}
+              onChange={(e) => setFormData({ ...formData, domicile: e.target.value })}
+              className="input"
+            />
+          </div>
+        </form>
+      </Dialog>
+
+      <ConfirmDialog
+        open={!!deleteId}
+        onClose={() => setDeleteId(null)}
+        onConfirm={handleDelete}
+        title="Hapus Anggota"
+        message="Apakah Anda yakin ingin menghapus anggota keluarga ini? Semua relasi juga akan dihapus."
+        confirmText="Hapus"
+        variant="danger"
+      />
     </div>
   )
 }

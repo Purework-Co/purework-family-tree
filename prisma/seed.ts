@@ -77,7 +77,6 @@ async function main() {
       toPersonId: nenek.id,
       relationType: 'PASANGAN',
       urutan: 1,
-      status: 'ENDED',
     },
   })
 
@@ -106,19 +105,11 @@ async function main() {
   })
 
   await prisma.personRelation.create({
-    data: {
-      fromPersonId: ayah.id,
-      toPersonId: kakek.id,
-      relationType: 'ORANGTUA_ANAK',
-    },
+    data: { fromPersonId: ayah.id, toPersonId: kakek.id, relationType: 'ORANGTUA_ANAK' },
   })
 
   await prisma.personRelation.create({
-    data: {
-      fromPersonId: ayah.id,
-      toPersonId: nenek.id,
-      relationType: 'ORANGTUA_ANAK',
-    },
+    data: { fromPersonId: ayah.id, toPersonId: nenek.id, relationType: 'ORANGTUA_ANAK' },
   })
 
   await prisma.personRelation.create({
@@ -127,7 +118,6 @@ async function main() {
       toPersonId: ibu.id,
       relationType: 'PASANGAN',
       urutan: 1,
-      status: 'ACTIVE',
     },
   })
 
@@ -165,24 +155,12 @@ async function main() {
     },
   })
 
-  await prisma.personRelation.create({
-    data: { fromPersonId: anak1.id, toPersonId: ayah.id, relationType: 'ORANGTUA_ANAK' },
-  })
-  await prisma.personRelation.create({
-    data: { fromPersonId: anak1.id, toPersonId: ibu.id, relationType: 'ORANGTUA_ANAK' },
-  })
-  await prisma.personRelation.create({
-    data: { fromPersonId: anak2.id, toPersonId: ayah.id, relationType: 'ORANGTUA_ANAK' },
-  })
-  await prisma.personRelation.create({
-    data: { fromPersonId: anak2.id, toPersonId: ibu.id, relationType: 'ORANGTUA_ANAK' },
-  })
-  await prisma.personRelation.create({
-    data: { fromPersonId: anak3.id, toPersonId: ayah.id, relationType: 'ORANGTUA_ANAK' },
-  })
-  await prisma.personRelation.create({
-    data: { fromPersonId: anak3.id, toPersonId: ibu.id, relationType: 'ORANGTUA_ANAK' },
-  })
+  await prisma.personRelation.create({ data: { fromPersonId: anak1.id, toPersonId: ayah.id, relationType: 'ORANGTUA_ANAK' } })
+  await prisma.personRelation.create({ data: { fromPersonId: anak1.id, toPersonId: ibu.id, relationType: 'ORANGTUA_ANAK' } })
+  await prisma.personRelation.create({ data: { fromPersonId: anak2.id, toPersonId: ayah.id, relationType: 'ORANGTUA_ANAK' } })
+  await prisma.personRelation.create({ data: { fromPersonId: anak2.id, toPersonId: ibu.id, relationType: 'ORANGTUA_ANAK' } })
+  await prisma.personRelation.create({ data: { fromPersonId: anak3.id, toPersonId: ayah.id, relationType: 'ORANGTUA_ANAK' } })
+  await prisma.personRelation.create({ data: { fromPersonId: anak3.id, toPersonId: ibu.id, relationType: 'ORANGTUA_ANAK' } })
 
   const cucu1 = await prisma.person.create({
     data: {
@@ -211,12 +189,8 @@ async function main() {
     },
   })
 
-  await prisma.personRelation.create({
-    data: { fromPersonId: bibi.id, toPersonId: kakek.id, relationType: 'ORANGTUA_ANAK' },
-  })
-  await prisma.personRelation.create({
-    data: { fromPersonId: bibi.id, toPersonId: nenek.id, relationType: 'ORANGTUA_ANAK' },
-  })
+  await prisma.personRelation.create({ data: { fromPersonId: bibi.id, toPersonId: kakek.id, relationType: 'ORANGTUA_ANAK' } })
+  await prisma.personRelation.create({ data: { fromPersonId: bibi.id, toPersonId: nenek.id, relationType: 'ORANGTUA_ANAK' } })
 
   const suamiBibi = await prisma.person.create({
     data: {
@@ -236,7 +210,6 @@ async function main() {
       toPersonId: suamiBibi.id,
       relationType: 'PASANGAN',
       urutan: 1,
-      status: 'ACTIVE',
     },
   })
 
@@ -252,12 +225,8 @@ async function main() {
     },
   })
 
-  await prisma.personRelation.create({
-    data: { fromPersonId: keponakan.id, toPersonId: bibi.id, relationType: 'ORANGTUA_ANAK' },
-  })
-  await prisma.personRelation.create({
-    data: { fromPersonId: keponakan.id, toPersonId: suamiBibi.id, relationType: 'ORANGTUA_ANAK' },
-  })
+  await prisma.personRelation.create({ data: { fromPersonId: keponakan.id, toPersonId: bibi.id, relationType: 'ORANGTUA_ANAK' } })
+  await prisma.personRelation.create({ data: { fromPersonId: keponakan.id, toPersonId: suamiBibi.id, relationType: 'ORANGTUA_ANAK' } })
 
   console.log('Created family tree with:')
   console.log('- 1 Kakek & 1 Nenek')

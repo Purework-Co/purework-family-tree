@@ -4,12 +4,13 @@ import { useState, useEffect } from 'react'
 import { 
   Plus, 
   Trash2, 
-  X,
   ChevronLeft,
   ChevronRight,
   Heart,
-  Users
+  Users,
+  X
 } from 'lucide-react'
+import { Dialog, ConfirmDialog } from '@/components/dialog'
 
 type Person = {
   id: string
@@ -24,7 +25,6 @@ type Relation = {
   toPersonId: string
   relationType: string
   urutan: number
-  status: string
   fromPerson: Person
   toPerson: Person
 }
@@ -39,14 +39,15 @@ export default function RelationsPage() {
   const [people, setPeople] = useState<Person[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
+  const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [error, setError] = useState('')
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [formData, setFormData] = useState({
     fromPersonId: '',
     toPersonId: '',
     relationType: 'ORANGTUA_ANAK',
-    urutan: 1,
-    status: 'ACTIVE'
+    urutan: ''
   })
 
   useEffect(() => {
@@ -74,11 +75,18 @@ export default function RelationsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError('')
+    
+    const submitData = {
+      ...formData,
+      urutan: formData.urutan ? parseInt(formData.urutan.toString()) : 1
+    }
+    
     try {
       const res = await fetch('/api/relations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(submitData)
       })
 
       if (res.ok) {
@@ -87,23 +95,26 @@ export default function RelationsPage() {
         fetchData()
       } else {
         const data = await res.json()
-        alert(data.error || 'Terjadi kesalahan')
+        setError(data.error || 'Terjadi kesalahan')
       }
-    } catch (error) {
-      console.error('Error creating relation:', error)
+    } catch (err) {
+      console.error('Error creating relation:', err)
+      setError('Terjadi kesalahan')
     }
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Apakah Anda yakin ingin menghapus relasi ini?')) return
+  const handleDelete = async () => {
+    if (!deleteId) return
     
     try {
-      const res = await fetch(`/api/relations/${id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/relations/${deleteId}`, { method: 'DELETE' })
       if (res.ok) {
         fetchData()
       }
     } catch (error) {
       console.error('Error deleting relation:', error)
+    } finally {
+      setDeleteId(null)
     }
   }
 
@@ -112,9 +123,9 @@ export default function RelationsPage() {
       fromPersonId: '',
       toPersonId: '',
       relationType: 'ORANGTUA_ANAK',
-      urutan: 1,
-      status: 'ACTIVE'
+      urutan: ''
     })
+    setError('')
   }
 
   const getRelationLabel = (type: string) => {
@@ -125,19 +136,26 @@ export default function RelationsPage() {
     if (relation.relationType === 'PASANGAN') {
       return `${relation.fromPerson.fullname} dan ${relation.toPerson.fullname}`
     } else {
-      const child = people.find(p => p.id === relation.toPersonId)
-      const parent = people.find(p => p.id === relation.fromPersonId)
-      if (parent?.gender === 'MALE') {
-        return `${parent.fullname} (Ayah) - ${child?.fullname}`
-      } else if (parent?.gender === 'FEMALE') {
-        return `${parent.fullname} (Ibu) - ${child?.fullname}`
-      }
-      return `${relation.fromPerson.fullname} - ${relation.toPerson.fullname}`
+      return `${relation.fromPerson.fullname} → ${relation.toPerson.fullname}`
     }
   }
 
   const fromPerson = people.find(p => p.id === formData.fromPersonId)
   const toPerson = people.find(p => p.id === formData.toPersonId)
+
+  const getCouples = () => {
+    const couples: { husband: Person; wife: Person }[] = []
+    relations
+      .filter(r => r.relationType === 'PASANGAN')
+      .forEach(r => {
+        if (r.fromPerson.gender === 'MALE' && r.toPerson.gender === 'FEMALE') {
+          couples.push({ husband: r.fromPerson, wife: r.toPerson })
+        } else if (r.fromPerson.gender === 'FEMALE' && r.toPerson.gender === 'MALE') {
+          couples.push({ husband: r.toPerson, wife: r.fromPerson })
+        }
+      })
+    return couples
+  }
 
   return (
     <div>
@@ -158,18 +176,17 @@ export default function RelationsPage() {
             <tr>
               <th>Jenis Hubungan</th>
               <th>Detail</th>
-              <th>Status</th>
               <th>Aksi</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={4} className="text-center py-8">Memuat...</td>
+                <td colSpan={3} className="text-center py-8">Memuat...</td>
               </tr>
             ) : relations.length === 0 ? (
               <tr>
-                <td colSpan={4} className="text-center py-8 text-[#6B7280]">
+                <td colSpan={3} className="text-center py-8 text-[#6B7280]">
                   Belum ada relasi. Silakan tambah relasi terlebih dahulu.
                 </td>
               </tr>
@@ -195,17 +212,8 @@ export default function RelationsPage() {
                     {getRelationDescription(relation)}
                   </td>
                   <td>
-                    <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
-                      relation.status === 'ACTIVE' 
-                        ? 'bg-green-100 text-green-700' 
-                        : 'bg-gray-100 text-gray-700'
-                    }`}>
-                      {relation.status === 'ACTIVE' ? 'Aktif' : 'Berakhir'}
-                    </span>
-                  </td>
-                  <td>
                     <button
-                      onClick={() => handleDelete(relation.id)}
+                      onClick={() => setDeleteId(relation.id)}
                       className="p-2 text-[#6B7280] hover:text-[#EF4444] hover:bg-red-50 rounded-lg transition-colors"
                       title="Hapus"
                     >
@@ -241,160 +249,179 @@ export default function RelationsPage() {
         </div>
       )}
 
-      {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-lg">
-            <div className="p-6 border-b border-[#E5E7EB] flex items-center justify-between">
-              <h2 className="text-xl font-bold text-[#2D3142]">Tambah Relasi</h2>
-              <button onClick={() => setShowModal(false)} className="p-2 hover:bg-[#F4F1DE] rounded-lg">
-                <X className="w-5 h-5" />
-              </button>
+      <Dialog
+        open={showModal}
+        onClose={() => { setShowModal(false); resetForm(); }}
+        title="Tambah Relasi"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => { setShowModal(false); resetForm(); }}
+              className="btn btn-ghost flex-1"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              form="relation-form"
+              className="btn btn-primary flex-1"
+            >
+              Simpan
+            </button>
+          </>
+        }
+      >
+        <form id="relation-form" onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
+              {error}
             </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          )}
+
+          <div>
+            <label className="label">Jenis Hubungan</label>
+            <select
+              value={formData.relationType}
+              onChange={(e) => setFormData({ ...formData, relationType: e.target.value, fromPersonId: '', toPersonId: '' })}
+              className="input"
+              required
+            >
+              {relationTypes.map((type) => (
+                <option key={type.value} value={type.value}>
+                  {type.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {formData.relationType === 'PASANGAN' ? (
+            <>
               <div>
-                <label className="label">Jenis Hubungan</label>
+                <label className="label">Suami</label>
                 <select
-                  value={formData.relationType}
-                  onChange={(e) => setFormData({ ...formData, relationType: e.target.value, fromPersonId: '', toPersonId: '' })}
+                  value={formData.fromPersonId}
+                  onChange={(e) => setFormData({ ...formData, fromPersonId: e.target.value })}
                   className="input"
                   required
                 >
-                  {relationTypes.map((type) => (
-                    <option key={type.value} value={type.value}>
-                      {type.label}
+                  <option value="">Pilih suami...</option>
+                  {people.filter(p => p.gender === 'MALE').map((person) => (
+                    <option key={person.id} value={person.id}>
+                      {person.fullname} ({person.callName || 'Laki-laki'})
                     </option>
                   ))}
                 </select>
               </div>
 
-              {formData.relationType === 'PASANGAN' ? (
-                <>
-                  <div>
-                    <label className="label">Suami</label>
-                    <select
-                      value={formData.fromPersonId}
-                      onChange={(e) => setFormData({ ...formData, fromPersonId: e.target.value })}
-                      className="input"
-                      required
-                    >
-                      <option value="">Pilih suami...</option>
-                      {people.filter(p => p.gender === 'MALE').map((person) => (
-                        <option key={person.id} value={person.id}>
-                          {person.fullname} ({person.callName || 'Laki-laki'})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="label">Istri</label>
-                    <select
-                      value={formData.toPersonId}
-                      onChange={(e) => setFormData({ ...formData, toPersonId: e.target.value })}
-                      className="input"
-                      required
-                    >
-                      <option value="">Pilih istri...</option>
-                      {people.filter(p => p.gender === 'FEMALE' && p.id !== formData.fromPersonId).map((person) => (
-                        <option key={person.id} value={person.id}>
-                          {person.fullname} ({person.callName || 'Perempuan'})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div>
-                    <label className="label">Orang Tua</label>
-                    <select
-                      value={formData.fromPersonId}
-                      onChange={(e) => setFormData({ ...formData, fromPersonId: e.target.value })}
-                      className="input"
-                      required
-                    >
-                      <option value="">Pilih orang tua...</option>
-                      {people.map((person) => (
-                        <option key={person.id} value={person.id}>
-                          {person.fullname} ({person.callName || person.gender === 'MALE' ? 'Laki-laki' : 'Perempuan'})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="label">Anak</label>
-                    <select
-                      value={formData.toPersonId}
-                      onChange={(e) => setFormData({ ...formData, toPersonId: e.target.value })}
-                      className="input"
-                      required
-                    >
-                      <option value="">Pilih anak...</option>
-                      {people.filter(p => p.id !== formData.fromPersonId).map((person) => (
-                        <option key={person.id} value={person.id}>
-                          {person.fullname} ({person.callName || person.gender === 'MALE' ? 'Laki-laki' : 'Perempuan'})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </>
-              )}
+              <div>
+                <label className="label">Istri</label>
+                <select
+                  value={formData.toPersonId}
+                  onChange={(e) => setFormData({ ...formData, toPersonId: e.target.value })}
+                  className="input"
+                  required
+                >
+                  <option value="">Pilih istri...</option>
+                  {people.filter(p => p.gender === 'FEMALE' && p.id !== formData.fromPersonId).map((person) => (
+                    <option key={person.id} value={person.id}>
+                      {person.fullname} ({person.callName || 'Perempuan'})
+                    </option>
+                  ))}
+                </select>
+              </div>
 
               <div>
-                <label className="label">Urutan (untuk pasangan kedua/ketiga)</label>
-                <select
+                <label className="label">Urutan Pasangan (Opsional)</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="10"
                   value={formData.urutan}
-                  onChange={(e) => setFormData({ ...formData, urutan: parseInt(e.target.value) })}
+                  onChange={(e) => setFormData({ ...formData, urutan: e.target.value })}
                   className="input"
+                  placeholder="1"
+                />
+                <p className="text-xs text-[#6B7280] mt-1">Contoh: 2 untuk istri kedua</p>
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <label className="label">Pasangan Orang Tua</label>
+                <select
+                  value={formData.fromPersonId}
+                  onChange={(e) => setFormData({ ...formData, fromPersonId: e.target.value })}
+                  className="input"
+                  required
                 >
-                  <option value={1}>Pertama</option>
-                  <option value={2}>Kedua</option>
-                  <option value={3}>Ketiga</option>
+                  <option value="">Pilih pasangan orang tua...</option>
+                  {getCouples().map((couple, idx) => (
+                    <option key={idx} value={couple.husband.id}>
+                      {couple.husband.fullname} & {couple.wife.fullname}
+                    </option>
+                  ))}
+                  {people.filter(p => {
+                    const hasSpouse = relations.some(r => 
+                      r.relationType === 'PASANGAN' && 
+                      (r.fromPersonId === p.id || r.toPersonId === p.id)
+                    )
+                    return !hasSpouse
+                  }).map((person) => (
+                    <option key={person.id} value={person.id}>
+                      {person.fullname} (Belum pasang)
+                    </option>
+                  ))}
                 </select>
               </div>
 
               <div>
-                <label className="label">Status</label>
+                <label className="label">Anak</label>
                 <select
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                  value={formData.toPersonId}
+                  onChange={(e) => setFormData({ ...formData, toPersonId: e.target.value })}
                   className="input"
+                  required
                 >
-                  <option value="ACTIVE">Aktif</option>
-                  <option value="ENDED">Berakhir (Cerai/Meninggal)</option>
+                  <option value="">Pilih anak...</option>
+                  {people.filter(p => p.id !== formData.fromPersonId).map((person) => (
+                    <option key={person.id} value={person.id}>
+                      {person.fullname} ({person.callName || person.gender === 'MALE' ? 'Laki-laki' : 'Perempuan'})
+                    </option>
+                  ))}
                 </select>
               </div>
+            </>
+          )}
 
-              {formData.fromPersonId && formData.toPersonId && (
-                <div className="p-4 bg-[#F4F1DE] rounded-xl">
-                  <p className="text-sm text-[#6B7280] mb-2">Preview:</p>
-                  <p className="text-[#2D3142]">
-                    {formData.relationType === 'PASANGAN' ? (
-                      <>
-                        <strong>{fromPerson?.fullname}</strong> (Suami) - <strong>{toPerson?.fullname}</strong> (Istri)
-                      </>
-                    ) : (
-                      <>
-                        <strong>{fromPerson?.fullname}</strong> adalah orang tua dari <strong>{toPerson?.fullname}</strong>
-                      </>
-                    )}
-                  </p>
-                </div>
-              )}
+          {formData.fromPersonId && formData.toPersonId && (
+            <div className="p-4 bg-[#F4F1DE] rounded-xl">
+              <p className="text-sm text-[#6B7280] mb-2">Preview:</p>
+              <p className="text-[#2D3142]">
+                {formData.relationType === 'PASANGAN' ? (
+                  <>
+                    <strong>{fromPerson?.fullname}</strong> (Suami) - <strong>{toPerson?.fullname}</strong> (Istri)
+                  </>
+                ) : (
+                  <>
+                    <strong>{fromPerson?.fullname}</strong> adalah orang tua dari <strong>{toPerson?.fullname}</strong>
+                  </>
+                )}
+              </p>
+            </div>
+          )}
+        </form>
+      </Dialog>
 
-              <div className="flex gap-3 pt-4">
-                <button type="button" onClick={() => setShowModal(false)} className="btn btn-ghost flex-1">
-                  Batal
-                </button>
-                <button type="submit" className="btn btn-primary flex-1">
-                  Simpan
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={!!deleteId}
+        onClose={() => setDeleteId(null)}
+        onConfirm={handleDelete}
+        title="Hapus Relasi"
+        message="Apakah Anda yakin ingin menghapus relasi ini?"
+        confirmText="Hapus"
+        variant="danger"
+      />
     </div>
   )
 }
