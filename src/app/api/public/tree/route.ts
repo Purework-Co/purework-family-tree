@@ -84,8 +84,7 @@ export async function GET() {
         })
         .map(r => ({
           id: r.fromPersonId === person.id ? r.toPersonId : r.fromPersonId,
-          urutan: r.urutan,
-          status: r.status
+          urutan: r.urutan
         }))
       
       const childrenCount = relations.filter(
