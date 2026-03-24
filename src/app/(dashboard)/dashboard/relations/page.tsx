@@ -7,8 +7,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Heart,
-  Users,
-  X
+  Users
 } from 'lucide-react'
 import { Dialog, ConfirmDialog } from '@/components/dialog'
 
