@@ -1,0 +1,77 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Settings {
+  id            String   @id @default("default")
+  familyName    String   @default("Keluarga")
+  publicPassword String
+  updatedAt     DateTime @updatedAt
+}
+
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  password  String
+  role      Role     @default(CONTRIBUTOR)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum Role {
+  ADMIN
+  CONTRIBUTOR
+}
+
+model Person {
+  id          String    @id @default(uuid())
+  fullname    String
+  callName    String?
+  dateOfBirth DateTime?
+  dateOfDeath DateTime?
+  gender      Gender
+  occupation  String?
+  hometown    String?
+  domicile    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  relationsFrom PersonRelation[] @relation("FromPerson")
+  relationsTo   PersonRelation[] @relation("ToPerson")
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+model PersonRelation {
+  id           String        @id @default(uuid())
+  fromPersonId String
+  toPersonId   String
+  relationType RelationType
+  urutan       Int           @default(1)
+  status       RelationStatus @default(ACTIVE)
+
+  fromPerson   Person        @relation("FromPerson", fields: [fromPersonId], references: [id], onDelete: Cascade)
+  toPerson     Person        @relation("ToPerson", fields: [toPersonId], references: [id], onDelete: Cascade)
+
+  createdAt    DateTime      @default(now())
+
+  @@unique([fromPersonId, toPersonId, relationType])
+}
+
+enum RelationType {
+  PASANGAN
+  ORANGTUA_ANAK
+}
+
+enum RelationStatus {
+  ACTIVE
+  ENDED
+}

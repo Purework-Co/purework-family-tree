@@ -1,0 +1,97 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary: #E07A5F;
+  --primary-hover: #C96A52;
+  --secondary: #3D405B;
+  --accent: #81B29A;
+  --background: #F4F1DE;
+  --surface: #FFFFFF;
+  --text: #2D3142;
+  --text-muted: #6B7280;
+  --border: #E5E7EB;
+  --success: #22C55E;
+  --error: #EF4444;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Nunito', sans-serif;
+  background-color: var(--background);
+  color: var(--text);
+}
+
+@layer components {
+  .btn {
+    @apply px-4 py-2.5 rounded-xl font-semibold transition-all duration-200 min-h-[44px] flex items-center justify-center gap-2;
+  }
+  
+  .btn-primary {
+    @apply bg-[#E07A5F] text-white hover:bg-[#C96A52] active:scale-[0.98];
+  }
+  
+  .btn-secondary {
+    @apply bg-[#3D405B] text-white hover:bg-[#2D3142] active:scale-[0.98];
+  }
+  
+  .btn-outline {
+    @apply border-2 border-[#E07A5F] text-[#E07A5F] hover:bg-[#E07A5F] hover:text-white active:scale-[0.98];
+  }
+  
+  .btn-ghost {
+    @apply text-[#3D405B] hover:bg-[#F4F1DE] active:scale-[0.98];
+  }
+  
+  .btn-danger {
+    @apply bg-[#EF4444] text-white hover:bg-[#DC2626] active:scale-[0.98];
+  }
+
+  .input {
+    @apply w-full px-4 py-2.5 rounded-xl border-2 border-[#E5E7EB] bg-white text-[#2D3142] placeholder:text-[#9CA3AF] focus:border-[#E07A5F] focus:outline-none transition-colors min-h-[44px];
+  }
+
+  .label {
+    @apply block text-sm font-semibold text-[#2D3142] mb-1.5;
+  }
+
+  .card {
+    @apply bg-white rounded-2xl shadow-sm border border-[#E5E7EB] p-6;
+  }
+
+  .table-container {
+    @apply overflow-x-auto rounded-2xl border border-[#E5E7EB] bg-white;
+  }
+
+  .table {
+    @apply w-full text-left;
+  }
+
+  .table th {
+    @apply px-4 py-3 bg-[#F9FAFB] text-[#374151] font-semibold text-sm border-b border-[#E5E7EB];
+  }
+
+  .table td {
+    @apply px-4 py-3 border-b border-[#E5E7EB] text-[#2D3142];
+  }
+
+  .table tr:last-child td {
+    @apply border-b-0;
+  }
+
+  .table tr:hover td {
+    @apply bg-[#F9FAFB];
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
