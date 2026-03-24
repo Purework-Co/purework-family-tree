@@ -1,14 +1,8 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { 
-  Users, 
-  Lock, 
-  ArrowLeft,
-  X,
-  User
-} from 'lucide-react'
+import { Users, Lock, ArrowLeft, X, User } from 'lucide-react'
 import FamilyTree, { RawFamilyMember, RawFamilyRelation, buildFamilyAndRelations } from 'reactflow-family-tree'
 import 'reactflow-family-tree/dist/style.css'
 
@@ -39,6 +33,11 @@ export default function FamilyTreePage() {
   const [errorMsg, setErrorMsg] = useState('')
   const [checking, setChecking] = useState(false)
   const [selectedPerson, setSelectedPerson] = useState<PersonNode | null>(null)
+  
+  // Family tree data for reactflow-family-tree
+  const [familyMembers, setFamilyMembers] = useState<RawFamilyMember[]>([])
+  const [familyRelations, setFamilyRelations] = useState<RawFamilyRelation[]>([])
+  const [rootMember, setRootMember] = useState<RawFamilyMember | null>(null)
 
   useEffect(() => {
     const savedAuth = localStorage.getItem('public_auth')
@@ -49,6 +48,12 @@ export default function FamilyTreePage() {
       setLoading(false)
     }
   }, [])
+
+  useEffect(() => {
+    if (data && data.nodes.length > 0) {
+      transformData()
+    }
+  }, [data])
 
   const fetchTreeData = async () => {
     setLoading(true)
@@ -63,6 +68,48 @@ export default function FamilyTreePage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const transformData = () => {
+    if (!data || data.nodes.length === 0) return
+
+    const members: RawFamilyMember[] = data.nodes.map(node => ({
+      id: node.id,
+      data: {
+        title: node.fullname,
+        titleBgColor: node.gender === 'MALE' ? 'rgb(59, 130, 246)' : 'rgb(236, 72, 153)',
+        titleTextColor: 'white',
+        subtitles: [
+          node.callName || (node.gender === 'MALE' ? 'Laki-laki' : 'Perempuan'),
+          node.age !== null ? `${node.age} tahun` : '',
+          node.occupation || '',
+          !node.isAlive ? 'Almarhum' : ''
+        ].filter(Boolean),
+        sex: node.gender === 'MALE' ? 'M' as const : 'F' as const,
+      }
+    }))
+
+    const relations: RawFamilyRelation[] = data.edges.map(edge => ({
+      relationType: edge.type === 'PASANGAN' ? 'Partner' as const : 'Child' as const,
+      prettyType: edge.type === 'PASANGAN' ? 'Pasangan' as const : 'Anak' as const,
+      fromId: edge.source,
+      toId: edge.target
+    }))
+
+    const [membersRecord, _relationsRecord] = buildFamilyAndRelations(members, relations)
+    
+    // Find root member (someone with no parents)
+    const nodesWithNoParents = data.nodes.filter(node => {
+      const hasParent = data.edges.some(e => e.type === 'ORANGTUA_ANAK' && e.target === node.id)
+      return !hasParent
+    })
+    
+    const rootId = nodesWithNoParents[0]?.id || data.nodes[0]?.id
+    const root = rootId ? membersRecord[rootId] || null : null
+
+    setFamilyMembers(members)
+    setFamilyRelations(relations)
+    setRootMember(root)
   }
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -97,54 +144,10 @@ export default function FamilyTreePage() {
     localStorage.removeItem('public_auth')
     setAuthenticated(false)
     setData(null)
+    setFamilyMembers([])
+    setFamilyRelations([])
+    setRootMember(null)
   }
-
-  const { familyMembersRecord, familyRelationsRecord, rootMemberId } = useMemo(() => {
-    if (!data || !data.nodes.length) {
-      return { familyMembersRecord: {}, familyRelationsRecord: {}, rootMemberId: '' }
-    }
-
-    const familyMembers: RawFamilyMember[] = data.nodes.map(node => ({
-      id: node.id,
-      data: {
-        title: node.fullname,
-        titleBgColor: node.gender === 'MALE' ? 'rgb(59, 130, 246)' : 'rgb(236, 72, 153)',
-        titleTextColor: 'white',
-        subtitles: [
-          node.callName || (node.gender === 'MALE' ? 'Laki-laki' : 'Perempuan'),
-          node.age !== null ? `${node.age} tahun` : '',
-          node.occupation || '',
-          !node.isAlive ? 'Almarhum' : ''
-        ].filter(Boolean),
-        sex: node.gender === 'MALE' ? 'M' as const : 'F' as const,
-      }
-    }))
-
-    const familyRelations: RawFamilyRelation[] = data.edges.map(edge => ({
-      relationType: edge.type === 'PASANGAN' ? 'Partner' as const : 'Child' as const,
-      prettyType: edge.type === 'PASANGAN' ? 'Pasangan' as const : 'Anak' as const,
-      fromId: edge.source,
-      toId: edge.target
-    }))
-
-    const nodesWithNoParents = data.nodes.filter(node => {
-      const hasParent = data.edges.some(e => e.type === 'ORANGTUA_ANAK' && e.target === node.id)
-      return !hasParent
-    })
-
-    const [membersRecord, relationsRecord] = buildFamilyAndRelations(
-      familyMembers as RawFamilyMember[],
-      familyRelations as RawFamilyRelation[]
-    )
-
-    const rootId = nodesWithNoParents[0]?.id || data.nodes[0]?.id || ''
-
-    return { 
-      familyMembersRecord: membersRecord, 
-      familyRelationsRecord: relationsRecord,
-      rootMemberId: rootId
-    }
-  }, [data])
 
   const handleNodeClick = (nodeId: string) => {
     const person = data?.nodes.find(n => n.id === nodeId)
@@ -228,11 +231,10 @@ export default function FamilyTreePage() {
           </div>
         ) : (
           <FamilyTree
-            familyMembers={familyMembersRecord}
-            familyRelations={familyRelationsRecord}
-            rootMember={familyMembersRecord[rootMemberId]}
+            familyMembers={familyMembers}
+            familyRelations={familyRelations}
+            rootMember={rootMember}
             onNodeClick={handleNodeClick}
-            chartOrientation="vertical"
           />
         )}
       </div>
