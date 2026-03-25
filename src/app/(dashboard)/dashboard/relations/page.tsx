@@ -9,7 +9,12 @@ import {
   Heart,
   Users,
   Search,
-  X
+  X,
+  Edit2,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Filter
 } from 'lucide-react'
 import { Dialog, ConfirmDialog } from '@/components/dialog'
 
@@ -47,41 +52,93 @@ const subTypeOptions: Record<string, string[]> = {
   ORANGTUA_ANAK: ['BIOLOGICAL', 'ADOPTED'],
 }
 
+const COUPLE_PREFIX = 'couple:'
+
+function makeCoupleId(husbandId: string, wifeId: string) {
+  return `${COUPLE_PREFIX}${husbandId}:${wifeId}`
+}
+
+function parseCoupleId(id: string): { husbandId: string; wifeId: string } | null {
+  if (!id.startsWith(COUPLE_PREFIX)) return null
+  const parts = id.slice(COUPLE_PREFIX.length).split(':')
+  if (parts.length !== 2) return null
+  return { husbandId: parts[0], wifeId: parts[1] }
+}
+
+function extractParentId(optionId: string): string {
+  const couple = parseCoupleId(optionId)
+  return couple ? couple.husbandId : optionId
+}
+
+function SortHeader({
+  label,
+  field,
+  currentField,
+  order,
+  onSort,
+}: {
+  label: string
+  field: string
+  currentField: string
+  order: 'asc' | 'desc'
+  onSort: (field: string) => void
+}) {
+  const active = currentField === field
+  return (
+    <button
+      type="button"
+      onClick={() => onSort(field)}
+      className="flex items-center gap-1 hover:text-[#E07A5F] transition-colors"
+    >
+      {label}
+      {active ? (
+        order === 'asc' ? <ArrowUp className="w-3.5 h-3.5" /> : <ArrowDown className="w-3.5 h-3.5" />
+      ) : (
+        <ArrowUpDown className="w-3.5 h-3.5 opacity-30" />
+      )}
+    </button>
+  )
+}
+
 function SearchableSelect({
   label,
   value,
   onChange,
   options,
   placeholder,
-  required,
 }: {
   label: string
   value: string
   onChange: (id: string) => void
   options: { id: string; label: string }[]
   placeholder: string
-  required?: boolean
 }) {
   const [open, setOpen] = useState(false)
-  const [search, setSearch] = useState('')
+  const [searchText, setSearchText] = useState('')
   const ref = useRef<HTMLDivElement>(null)
 
   const selected = options.find(o => o.id === value)
 
-  const filtered = search
-    ? options.filter(o => o.label.toLowerCase().includes(search.toLowerCase()))
+  const filtered = searchText
+    ? options.filter(o => o.label.toLowerCase().includes(searchText.toLowerCase()))
     : options
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) {
         setOpen(false)
-        setSearch('')
+        setSearchText('')
       }
     }
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
+
+  const handleSelect = (id: string) => {
+    onChange(id)
+    setOpen(false)
+    setSearchText('')
+  }
 
   return (
     <div ref={ref}>
@@ -104,15 +161,16 @@ function SearchableSelect({
                 <input
                   type="text"
                   autoFocus
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
                   placeholder="Cari nama..."
                   className="w-full pl-9 pr-8 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E07A5F]/30"
+                  onMouseDown={(e) => e.stopPropagation()}
                 />
-                {search && (
+                {searchText && (
                   <button
                     type="button"
-                    onClick={() => setSearch('')}
+                    onClick={() => setSearchText('')}
                     className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   >
                     <X className="w-4 h-4" />
@@ -127,20 +185,11 @@ function SearchableSelect({
               </div>
             ) : (
               <div>
-                {!value && (
-                  <button
-                    type="button"
-                    onClick={() => { onChange(''); setOpen(false); setSearch('') }}
-                    className="w-full text-left px-4 py-2 text-sm text-gray-400 hover:bg-gray-50"
-                  >
-                    {placeholder}
-                  </button>
-                )}
                 {filtered.map(o => (
                   <button
                     key={o.id}
                     type="button"
-                    onClick={() => { onChange(o.id); setOpen(false); setSearch('') }}
+                    onClick={() => handleSelect(o.id)}
                     className={`w-full text-left px-4 py-2 text-sm hover:bg-[#F4F1DE] transition-colors ${
                       o.id === value ? 'bg-[#F4F1DE] font-medium' : ''
                     }`}
@@ -153,15 +202,6 @@ function SearchableSelect({
           </div>
         )}
       </div>
-      {required && !value && (
-        <input
-          tabIndex={-1}
-          className="absolute opacity-0 w-0 h-0 pointer-events-none"
-          value={value}
-          onChange={() => {}}
-          required
-        />
-      )}
     </div>
   )
 }
@@ -171,10 +211,16 @@ export default function RelationsPage() {
   const [people, setPeople] = useState<Person[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
+  const [editingRelation, setEditingRelation] = useState<Relation | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [error, setError] = useState('')
+  const [search, setSearch] = useState('')
+  const [typeFilter, setTypeFilter] = useState('')
+  const [sortField, setSortField] = useState('createdAt')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
+  const [total, setTotal] = useState(0)
   const [formData, setFormData] = useState({
     fromPersonId: '',
     toPersonId: '',
@@ -185,19 +231,28 @@ export default function RelationsPage() {
 
   useEffect(() => {
     fetchData()
-  }, [page])
+  }, [page, search, typeFilter, sortField, sortOrder])
 
   const fetchData = async () => {
     setLoading(true)
     try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: '10',
+        ...(search && { search }),
+        ...(typeFilter && { type: typeFilter }),
+        sort: sortField,
+        order: sortOrder,
+      })
       const [relationsRes, peopleRes] = await Promise.all([
-        fetch(`/api/relations?page=${page}&limit=20`),
+        fetch(`/api/relations?${params}`),
         fetch('/api/people?limit=1000')
       ])
       const relationsData = await relationsRes.json()
       const peopleData = await peopleRes.json()
       setRelations(relationsData.data || [])
       setTotalPages(relationsData.pagination?.totalPages || 1)
+      setTotal(relationsData.pagination?.total || 0)
       setPeople(peopleData.data || [])
     } catch (error) {
       console.error('Error fetching data:', error)
@@ -206,24 +261,51 @@ export default function RelationsPage() {
     }
   }
 
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortOrder(o => o === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortOrder('asc')
+    }
+    setPage(1)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    
+
+    const submitFromId = formData.fromPersonId
+    const submitToId = extractParentId(formData.toPersonId)
+
+    if (!submitFromId || !submitToId) {
+      setError('Pilih orang yang valid')
+      return
+    }
+
     const submitData = {
-      ...formData,
+      fromPersonId: submitFromId,
+      toPersonId: submitToId,
+      relationType: formData.relationType,
+      relationSubType: formData.relationSubType,
       urutan: formData.urutan ? parseInt(formData.urutan.toString()) : 1
     }
-    
+
     try {
-      const res = await fetch('/api/relations', {
-        method: 'POST',
+      const url = editingRelation
+        ? `/api/relations/${editingRelation.id}`
+        : '/api/relations'
+      const method = editingRelation ? 'PUT' : 'POST'
+
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(submitData)
       })
 
       if (res.ok) {
         setShowModal(false)
+        setEditingRelation(null)
         resetForm()
         fetchData()
       } else {
@@ -231,14 +313,38 @@ export default function RelationsPage() {
         setError(data.error || 'Terjadi kesalahan')
       }
     } catch (err) {
-      console.error('Error creating relation:', err)
+      console.error('Error saving relation:', err)
       setError('Terjadi kesalahan')
     }
   }
 
+  const handleEdit = (relation: Relation) => {
+    setEditingRelation(relation)
+
+    let parentOptionId = relation.toPersonId
+    if (relation.relationType === 'ORANGTUA_ANAK') {
+      const coupleOption = parentOptions.find(o => {
+        const couple = parseCoupleId(o.id)
+        return couple && (couple.husbandId === relation.toPersonId || couple.wifeId === relation.toPersonId)
+      })
+      if (coupleOption) {
+        parentOptionId = coupleOption.id
+      }
+    }
+
+    setFormData({
+      fromPersonId: relation.fromPersonId,
+      toPersonId: parentOptionId,
+      relationType: relation.relationType,
+      relationSubType: relation.relationSubType,
+      urutan: relation.urutan > 0 ? relation.urutan.toString() : ''
+    })
+    setShowModal(true)
+  }
+
   const handleDelete = async () => {
     if (!deleteId) return
-    
+
     try {
       const res = await fetch(`/api/relations/${deleteId}`, { method: 'DELETE' })
       if (res.ok) {
@@ -262,6 +368,12 @@ export default function RelationsPage() {
     setError('')
   }
 
+  const openModal = () => {
+    setEditingRelation(null)
+    resetForm()
+    setShowModal(true)
+  }
+
   const getRelationLabel = (type: string) => {
     return relationTypes.find(r => r.value === type)?.label || type
   }
@@ -274,26 +386,43 @@ export default function RelationsPage() {
     if (relation.relationType === 'PASANGAN') {
       return `${relation.fromPerson.fullname} dan ${relation.toPerson.fullname}`
     } else {
-      return `${relation.fromPerson.fullname} → ${relation.toPerson.fullname}`
+      return `${relation.fromPerson.fullname} \u2192 ${relation.toPerson.fullname}`
     }
   }
 
   const fromPerson = people.find(p => p.id === formData.fromPersonId)
-  const toPerson = people.find(p => p.id === formData.toPersonId)
+  const toPersonRaw = formData.toPersonId
+  const toPersonIdForPreview = extractParentId(toPersonRaw)
+  const toPerson = people.find(p => p.id === toPersonIdForPreview)
 
-  const maleOptions = people
+  function getCouples() {
+    const couples: { husband: Person; wife: Person }[] = []
+    const seen = new Set<string>()
+    relations
+      .filter(r => r.relationType === 'PASANGAN')
+      .forEach(r => {
+        const key = [r.fromPersonId, r.toPersonId].sort().join('-')
+        if (seen.has(key)) return
+        seen.add(key)
+        if (r.fromPerson.gender === 'MALE' && r.toPerson.gender === 'FEMALE') {
+          couples.push({ husband: r.fromPerson, wife: r.toPerson })
+        } else if (r.fromPerson.gender === 'FEMALE' && r.toPerson.gender === 'MALE') {
+          couples.push({ husband: r.toPerson, wife: r.fromPerson })
+        }
+      })
+    return couples
+  }
+
+  const husbandOptions = people
     .filter(p => p.gender === 'MALE')
     .map(p => ({ id: p.id, label: `${p.fullname}${p.callName ? ` (${p.callName})` : ''}` }))
 
-  const femaleOptions = people
+  const wifeOptions = people
     .filter(p => p.gender === 'FEMALE' && p.id !== formData.fromPersonId)
     .map(p => ({ id: p.id, label: `${p.fullname}${p.callName ? ` (${p.callName})` : ''}` }))
 
-  const husbandOptions = maleOptions
-  const wifeOptions = femaleOptions
-
   const parentOptions = getCouples().map((c) => ({
-    id: c.husband.id,
+    id: makeCoupleId(c.husband.id, c.wife.id),
     label: `${c.husband.fullname} & ${c.wife.fullname}`
   })).concat(
     people
@@ -308,71 +437,89 @@ export default function RelationsPage() {
   )
 
   const childOptions = people
-    .filter(p => p.id !== formData.fromPersonId)
     .map(p => ({
       id: p.id,
-      label: `${p.fullname}${p.callName ? ` (${p.callName})` : ''} — ${p.gender === 'MALE' ? 'Laki-laki' : 'Perempuan'}`
+      label: `${p.fullname}${p.callName ? ` (${p.callName})` : ''} \u2014 ${p.gender === 'MALE' ? 'Laki-laki' : 'Perempuan'}`
     }))
-
-  function getCouples() {
-    const couples: { husband: Person; wife: Person }[] = []
-    relations
-      .filter(r => r.relationType === 'PASANGAN')
-      .forEach(r => {
-        if (r.fromPerson.gender === 'MALE' && r.toPerson.gender === 'FEMALE') {
-          couples.push({ husband: r.fromPerson, wife: r.toPerson })
-        } else if (r.fromPerson.gender === 'FEMALE' && r.toPerson.gender === 'MALE') {
-          couples.push({ husband: r.toPerson, wife: r.fromPerson })
-        }
-      })
-    return couples
-  }
 
   return (
     <div>
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-[#2D3142]">Kelola Relasi</h1>
-          <p className="text-[#6B7280]">Atur hubungan keluarga antar anggota</p>
+          <p className="text-[#6B7280]">{total} relasi terdaftar</p>
         </div>
-        <button onClick={() => setShowModal(true)} className="btn btn-primary">
+        <button onClick={openModal} className="btn btn-primary">
           <Plus className="w-5 h-5" />
           Tambah Relasi
         </button>
+      </div>
+
+      <div className="card mb-6">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#9CA3AF]" />
+            <input
+              type="text"
+              placeholder="Cari berdasarkan nama anggota..."
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              className="input pl-11"
+            />
+          </div>
+          <div className="relative">
+            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9CA3AF]" />
+            <select
+              value={typeFilter}
+              onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
+              className="input pl-9 pr-8 min-w-[180px]"
+            >
+              <option value="">Semua Jenis</option>
+              <option value="PASANGAN">Pasangan</option>
+              <option value="ORANGTUA_ANAK">Orang Tua - Anak</option>
+            </select>
+          </div>
+        </div>
       </div>
 
       <div className="table-container">
         <table className="table">
           <thead>
             <tr>
-              <th>Jenis Hubungan</th>
+              <th className="w-12">No.</th>
+              <th>
+                <SortHeader label="Jenis Hubungan" field="relationType" currentField={sortField} order={sortOrder} onSort={handleSort} />
+              </th>
               <th>Subtipe</th>
-              <th>Detail</th>
-              <th>Aksi</th>
+              <th>
+                <SortHeader label="Detail" field="fromPersonId" currentField={sortField} order={sortOrder} onSort={handleSort} />
+              </th>
+              <th className="w-24">Aksi</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={4} className="text-center py-8">Memuat...</td>
+                <td colSpan={5} className="text-center py-8">Memuat...</td>
               </tr>
             ) : relations.length === 0 ? (
               <tr>
-                <td colSpan={4} className="text-center py-8 text-[#6B7280]">
-                  Belum ada relasi. Silakan tambah relasi terlebih dahulu.
+                <td colSpan={5} className="text-center py-8 text-[#6B7280]">
+                  {search || typeFilter ? 'Tidak ada hasil yang cocok' : 'Belum ada relasi. Silakan tambah relasi terlebih dahulu.'}
                 </td>
               </tr>
             ) : (
-              relations.map((relation) => (
+              relations.map((relation, idx) => (
                 <tr key={relation.id}>
+                  <td className="text-[#6B7280] text-sm">{(page - 1) * 10 + idx + 1}</td>
                   <td>
                     <div className="flex items-center gap-2">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                        relation.relationType === 'PASANGAN' 
-                          ? 'bg-pink-100 text-pink-700' 
+                        relation.relationType === 'PASANGAN'
+                          ? 'bg-pink-100 text-pink-700'
                           : 'bg-blue-100 text-blue-700'
                       }`}>
-                        {relation.relationType === 'PASANGAN' 
+                        {relation.relationType === 'PASANGAN'
                           ? <Heart className="w-4 h-4" />
                           : <Users className="w-4 h-4" />
                         }
@@ -393,13 +540,22 @@ export default function RelationsPage() {
                     {getRelationDescription(relation)}
                   </td>
                   <td>
-                    <button
-                      onClick={() => setDeleteId(relation.id)}
-                      className="p-2 text-[#6B7280] hover:text-[#EF4444] hover:bg-red-50 rounded-lg transition-colors"
-                      title="Hapus"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => handleEdit(relation)}
+                        className="p-2 text-[#6B7280] hover:text-[#E07A5F] hover:bg-[#F4F1DE] rounded-lg transition-colors"
+                        title="Edit"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setDeleteId(relation.id)}
+                        className="p-2 text-[#6B7280] hover:text-[#EF4444] hover:bg-red-50 rounded-lg transition-colors"
+                        title="Hapus"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -432,13 +588,13 @@ export default function RelationsPage() {
 
       <Dialog
         open={showModal}
-        onClose={() => { setShowModal(false); resetForm(); }}
-        title="Tambah Relasi"
+        onClose={() => { setShowModal(false); setEditingRelation(null); resetForm(); }}
+        title={editingRelation ? 'Edit Relasi' : 'Tambah Relasi'}
         footer={
           <>
             <button
               type="button"
-              onClick={() => { setShowModal(false); resetForm(); }}
+              onClick={() => { setShowModal(false); setEditingRelation(null); resetForm(); }}
               className="btn btn-ghost flex-1"
             >
               Batal
@@ -502,7 +658,6 @@ export default function RelationsPage() {
                 onChange={(id) => setFormData({ ...formData, fromPersonId: id, toPersonId: '' })}
                 options={husbandOptions}
                 placeholder="Pilih suami..."
-                required
               />
 
               <SearchableSelect
@@ -511,7 +666,6 @@ export default function RelationsPage() {
                 onChange={(id) => setFormData({ ...formData, toPersonId: id })}
                 options={wifeOptions}
                 placeholder="Pilih istri..."
-                required
               />
 
               <div>
@@ -536,7 +690,6 @@ export default function RelationsPage() {
                 onChange={(id) => setFormData({ ...formData, toPersonId: id })}
                 options={parentOptions}
                 placeholder="Pilih orang tua..."
-                required
               />
 
               <SearchableSelect
@@ -545,7 +698,6 @@ export default function RelationsPage() {
                 onChange={(id) => setFormData({ ...formData, fromPersonId: id })}
                 options={childOptions}
                 placeholder="Pilih anak..."
-                required
               />
             </>
           )}
