@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 
 export async function GET(request: Request) {
   try {
@@ -13,18 +14,39 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '20')
+    const search = searchParams.get('search') || ''
+    const type = searchParams.get('type') || ''
+    const sort = searchParams.get('sort') || 'createdAt'
+    const order = (searchParams.get('order') || 'desc') as 'asc' | 'desc'
+
+    const allowedSorts = ['createdAt', 'relationType', 'fromPersonId', 'toPersonId']
+    const sortField = allowedSorts.includes(sort) ? sort : 'createdAt'
+
+    const where: Prisma.PersonRelationWhereInput = {}
+
+    if (type === 'PASANGAN' || type === 'ORANGTUA_ANAK') {
+      where.relationType = type
+    }
+
+    if (search) {
+      where.OR = [
+        { fromPerson: { fullname: { contains: search, mode: Prisma.QueryMode.insensitive } } },
+        { toPerson: { fullname: { contains: search, mode: Prisma.QueryMode.insensitive } } },
+      ]
+    }
 
     const [relations, total] = await Promise.all([
       prisma.personRelation.findMany({
+        where,
         include: {
           fromPerson: true,
           toPerson: true,
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { [sortField]: order },
         skip: (page - 1) * limit,
         take: limit,
       }),
-      prisma.personRelation.count()
+      prisma.personRelation.count({ where })
     ])
 
     return NextResponse.json({
