@@ -225,10 +225,18 @@ async function seedBig() {
     const gender = Math.random() > 0.5 ? 'MALE' : 'FEMALE'
     const p = await addPerson(gender, rand(1, 3))
 
-    // Randomly link to an existing person as child or spouse
+    // Randomly link to an existing person as child (both parents if couple exists)
     if (all.length > 5 && Math.random() > 0.3) {
       const parent = pick(all.slice(0, Math.min(30, all.length)))
       await linkChild(p, parent)
+      // Also link to spouse if parent has one
+      const spouseRel = all.find(s =>
+        s.gender !== parent.gender &&
+        s.id !== parent.id
+      )
+      if (spouseRel) {
+        await linkChild(p, spouseRel)
+      }
     }
     if (all.length > 10 && Math.random() > 0.7) {
       const spouse = pick(all.slice(0, Math.min(40, all.length)))
