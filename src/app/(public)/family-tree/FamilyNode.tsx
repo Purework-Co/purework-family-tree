@@ -2,8 +2,8 @@
 
 import { CSSProperties } from "react";
 
-const NODE_WIDTH = 160;
-const NODE_HEIGHT = 90;
+const NODE_WIDTH = 200;
+const NODE_HEIGHT = 120;
 
 interface PersonData {
   fullname: string;
@@ -64,7 +64,7 @@ export default function FamilyNode({
     <div style={style} className="flex items-center justify-center">
       <div
         onClick={() => onClick(id)}
-        className={`relative w-[140px] h-[80px] rounded-xl border-2 shadow-sm cursor-pointer
+        className={`relative w-[180px] h-[100px] rounded-xl border-2 shadow-sm cursor-pointer
           transition-all duration-150 hover:shadow-md hover:scale-105
           ${isMale ? "bg-blue-50 border-blue-300" : "bg-pink-50 border-pink-300"}
           ${isRoot ? "ring-2 ring-[#E07A5F] ring-offset-1" : ""}
@@ -87,11 +87,11 @@ export default function FamilyNode({
         )}
 
         <div className="flex flex-col items-center justify-center h-full px-2 py-1 text-center">
-          <div className="text-xs font-bold text-[#2D3142] truncate max-w-[130px]">
+          <div className="text-xs font-bold text-[#2D3142] truncate max-w-[170px]">
             {data?.fullname || id}
           </div>
           {data?.callName && (
-            <div className="text-[10px] text-[#6B7280] truncate max-w-[130px]">
+            <div className="text-[10px] text-[#6B7280] truncate max-w-[170px]">
               {data.callName}
             </div>
           )}
@@ -101,12 +101,12 @@ export default function FamilyNode({
             </div>
           )}
           {data?.hometown && (
-            <div className="text-[10px] text-[#81B29A] truncate max-w-[130px]">
+            <div className="text-[10px] text-[#81B29A] truncate max-w-[170px]">
               {data.hometown}
             </div>
           )}
           {data?.phone && (
-            <div className="text-[10px] text-[#6B7280] truncate max-w-[130px]">
+            <div className="text-[10px] text-[#6B7280] truncate max-w-[170px]">
               {data.phone}
             </div>
           )}

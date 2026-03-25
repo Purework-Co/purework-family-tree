@@ -16,9 +16,9 @@ import {
 } from 'lucide-react'
 
 const navigation = [
+  { name: 'Dashboard', href: '/dashboard', icon: BarChart3 },
   { name: 'Anggota Keluarga', href: '/dashboard/people', icon: Users },
   { name: 'Relasi', href: '/dashboard/relations', icon: GitBranch },
-  { name: 'Statistik', href: '/statistics', icon: BarChart3, external: true },
   { name: 'Kelola User', href: '/dashboard/users', icon: UserCog, adminOnly: true },
   { name: 'Pengaturan', href: '/dashboard/settings', icon: Settings, adminOnly: true },
 ]
@@ -91,37 +91,19 @@ export default function DashboardLayout({
 
         <nav className="p-4 space-y-1">
           {filteredNav.map((item) => {
-            const isActive = !item.external && (pathname === item.href || pathname?.startsWith(item.href + '/'))
-            const className = `
-              flex items-center gap-3 px-4 py-3 rounded-xl transition-colors
-              ${isActive 
-                ? 'bg-[#E07A5F] text-white' 
-                : 'text-[#6B7280] hover:bg-[#F4F1DE]'
-              }
-            `
-
-            if (item.external) {
-              return (
-                <a
-                  key={item.name}
-                  href={item.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => setSidebarOpen(false)}
-                  className={className}
-                >
-                  <item.icon className="w-5 h-5" />
-                  <span className="font-medium">{item.name}</span>
-                </a>
-              )
-            }
-
+            const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname?.startsWith(item.href + '/'))
             return (
               <Link
                 key={item.name}
                 href={item.href}
                 onClick={() => setSidebarOpen(false)}
-                className={className}
+                className={`
+                  flex items-center gap-3 px-4 py-3 rounded-xl transition-colors
+                  ${isActive 
+                    ? 'bg-[#E07A5F] text-white' 
+                    : 'text-[#6B7280] hover:bg-[#F4F1DE]'
+                  }
+                `}
               >
                 <item.icon className="w-5 h-5" />
                 <span className="font-medium">{item.name}</span>
