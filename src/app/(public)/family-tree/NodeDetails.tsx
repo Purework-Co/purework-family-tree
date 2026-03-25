@@ -1,6 +1,14 @@
 "use client";
 
-import { X, Heart, Users, Baby, User, Phone, MessageCircle } from "lucide-react";
+import {
+  X,
+  Heart,
+  Users,
+  Baby,
+  User,
+  Phone,
+  MessageCircle,
+} from "lucide-react";
 
 interface PersonData {
   fullname: string;
@@ -182,9 +190,7 @@ export default function NodeDetails({ node, allNodes, onClose }: Props) {
           {node.data.hometown && (
             <div>
               <span className="text-[#6B7280] text-xs">Asal</span>
-              <p className="font-medium text-[#2D3142]">
-                {node.data.hometown}
-              </p>
+              <p className="font-medium text-[#2D3142]">{node.data.hometown}</p>
             </div>
           )}
           <div>
@@ -241,7 +247,7 @@ export default function NodeDetails({ node, allNodes, onClose }: Props) {
           typeLabel={typeLabel}
         />
         <RelationList
-          title="Saudara"
+          title={`Saudara${node.siblings.length > 0 ? ` (${node.siblings.length})` : ""}`}
           icon={<Users size={14} className="text-[#3D405B]" />}
           relations={node.siblings}
           nodesMap={nodesMap}
