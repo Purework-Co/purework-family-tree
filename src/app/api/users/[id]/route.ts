@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 
 export async function PUT(
@@ -17,7 +18,10 @@ export async function PUT(
     const body = await request.json()
     const { username, password, role } = body
 
-    const updateData: { role: string; username?: string; password?: string } = { role }
+    const updateData: Prisma.UserUpdateInput = { }
+    if (role) {
+      updateData.role = role
+    }
     if (username) {
       const existing = await prisma.user.findFirst({
         where: { username, NOT: { id: params.id } }

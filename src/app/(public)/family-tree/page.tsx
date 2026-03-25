@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, useMemo, CSSProperties } from "react";
+import { useEffect, useState, useMemo } from "react";
 import ReactFamilyTree from "react-family-tree";
-import type { ExtNode, Node, Connector } from "relatives-tree/lib/types";
+import type { ExtNode, Node } from "relatives-tree/lib/types";
 import { Users, ZoomIn, ZoomOut, Maximize } from "lucide-react";
 import FamilyNode, { NODE_WIDTH, NODE_HEIGHT } from "./FamilyNode";
 import NodeDetails from "./NodeDetails";
@@ -57,7 +57,7 @@ export default function FamilyTreePage() {
         if (d.nodes.length > 0) {
           const hasParents = new Set<string>();
           for (const n of d.nodes) {
-            for (const p of n.parents) hasParents.add(n.id);
+            if (n.parents.length > 0) hasParents.add(n.id);
           }
           const roots = d.nodes.filter((n) => !hasParents.has(n.id));
           setRootId(roots.length > 0 ? roots[0].id : d.nodes[0].id);
@@ -124,35 +124,6 @@ export default function FamilyTreePage() {
       </div>
     );
   }
-
-  const renderConnector = (connector: Connector) => {
-    const [x1, y1, x2, y2] = connector;
-    const width = (x2 - x1) * (NODE_WIDTH / 2) + 1;
-    const height = (y2 - y1) * (NODE_HEIGHT / 2) + 1;
-
-    return (
-      <div
-        key={`${x1}-${y1}-${x2}-${y2}`}
-        style={{
-          position: "absolute",
-          width: Math.abs(width),
-          height: Math.abs(height),
-          transform: `translate(${x1 * (NODE_WIDTH / 2)}px, ${y1 * (NODE_HEIGHT / 2)}px)`,
-        }}
-      >
-        <div
-          style={{
-            position: "absolute",
-            left: 0,
-            top: 0,
-            width: "100%",
-            height: "100%",
-            background: "#CBD5E1",
-          }}
-        />
-      </div>
-    );
-  };
 
   return (
     <div className="h-screen flex flex-col bg-[#F4F1DE]">
