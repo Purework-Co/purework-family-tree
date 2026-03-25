@@ -1,13 +1,15 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { 
   Plus, 
   Trash2, 
   ChevronLeft,
   ChevronRight,
   Heart,
-  Users
+  Users,
+  Search,
+  X
 } from 'lucide-react'
 import { Dialog, ConfirmDialog } from '@/components/dialog'
 
@@ -43,6 +45,125 @@ const relationSubTypes = [
 const subTypeOptions: Record<string, string[]> = {
   PASANGAN: ['BIOLOGICAL', 'DIVORCED'],
   ORANGTUA_ANAK: ['BIOLOGICAL', 'ADOPTED'],
+}
+
+function SearchableSelect({
+  label,
+  value,
+  onChange,
+  options,
+  placeholder,
+  required,
+}: {
+  label: string
+  value: string
+  onChange: (id: string) => void
+  options: { id: string; label: string }[]
+  placeholder: string
+  required?: boolean
+}) {
+  const [open, setOpen] = useState(false)
+  const [search, setSearch] = useState('')
+  const ref = useRef<HTMLDivElement>(null)
+
+  const selected = options.find(o => o.id === value)
+
+  const filtered = search
+    ? options.filter(o => o.label.toLowerCase().includes(search.toLowerCase()))
+    : options
+
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false)
+        setSearch('')
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  return (
+    <div ref={ref}>
+      <label className="label">{label}</label>
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          className={`input w-full text-left flex items-center justify-between ${!selected ? 'text-gray-400' : ''}`}
+        >
+          <span className="truncate">{selected ? selected.label : placeholder}</span>
+          <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
+        </button>
+
+        {open && (
+          <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-auto">
+            <div className="p-2 border-b border-gray-100 sticky top-0 bg-white">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  autoFocus
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Cari nama..."
+                  className="w-full pl-9 pr-8 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E07A5F]/30"
+                />
+                {search && (
+                  <button
+                    type="button"
+                    onClick={() => setSearch('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {filtered.length === 0 ? (
+              <div className="px-4 py-3 text-sm text-gray-400 text-center">
+                Tidak ditemukan
+              </div>
+            ) : (
+              <div>
+                {!value && (
+                  <button
+                    type="button"
+                    onClick={() => { onChange(''); setOpen(false); setSearch('') }}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-400 hover:bg-gray-50"
+                  >
+                    {placeholder}
+                  </button>
+                )}
+                {filtered.map(o => (
+                  <button
+                    key={o.id}
+                    type="button"
+                    onClick={() => { onChange(o.id); setOpen(false); setSearch('') }}
+                    className={`w-full text-left px-4 py-2 text-sm hover:bg-[#F4F1DE] transition-colors ${
+                      o.id === value ? 'bg-[#F4F1DE] font-medium' : ''
+                    }`}
+                  >
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+      {required && !value && (
+        <input
+          tabIndex={-1}
+          className="absolute opacity-0 w-0 h-0 pointer-events-none"
+          value={value}
+          onChange={() => {}}
+          required
+        />
+      )}
+    </div>
+  )
 }
 
 export default function RelationsPage() {
@@ -160,7 +281,40 @@ export default function RelationsPage() {
   const fromPerson = people.find(p => p.id === formData.fromPersonId)
   const toPerson = people.find(p => p.id === formData.toPersonId)
 
-  const getCouples = () => {
+  const maleOptions = people
+    .filter(p => p.gender === 'MALE')
+    .map(p => ({ id: p.id, label: `${p.fullname}${p.callName ? ` (${p.callName})` : ''}` }))
+
+  const femaleOptions = people
+    .filter(p => p.gender === 'FEMALE' && p.id !== formData.fromPersonId)
+    .map(p => ({ id: p.id, label: `${p.fullname}${p.callName ? ` (${p.callName})` : ''}` }))
+
+  const husbandOptions = maleOptions
+  const wifeOptions = femaleOptions
+
+  const parentOptions = getCouples().map((c) => ({
+    id: c.husband.id,
+    label: `${c.husband.fullname} & ${c.wife.fullname}`
+  })).concat(
+    people
+      .filter(p => {
+        const hasSpouse = relations.some(r =>
+          r.relationType === 'PASANGAN' &&
+          (r.fromPersonId === p.id || r.toPersonId === p.id)
+        )
+        return !hasSpouse
+      })
+      .map(p => ({ id: p.id, label: `${p.fullname} (Belum pasang)` }))
+  )
+
+  const childOptions = people
+    .filter(p => p.id !== formData.fromPersonId)
+    .map(p => ({
+      id: p.id,
+      label: `${p.fullname}${p.callName ? ` (${p.callName})` : ''} — ${p.gender === 'MALE' ? 'Laki-laki' : 'Perempuan'}`
+    }))
+
+  function getCouples() {
     const couples: { husband: Person; wife: Person }[] = []
     relations
       .filter(r => r.relationType === 'PASANGAN')
@@ -342,39 +496,23 @@ export default function RelationsPage() {
 
           {formData.relationType === 'PASANGAN' ? (
             <>
-              <div>
-                <label className="label">Suami</label>
-                <select
-                  value={formData.fromPersonId}
-                  onChange={(e) => setFormData({ ...formData, fromPersonId: e.target.value })}
-                  className="input"
-                  required
-                >
-                  <option value="">Pilih suami...</option>
-                  {people.filter(p => p.gender === 'MALE').map((person) => (
-                    <option key={person.id} value={person.id}>
-                      {person.fullname} ({person.callName || 'Laki-laki'})
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <SearchableSelect
+                label="Suami"
+                value={formData.fromPersonId}
+                onChange={(id) => setFormData({ ...formData, fromPersonId: id, toPersonId: '' })}
+                options={husbandOptions}
+                placeholder="Pilih suami..."
+                required
+              />
 
-              <div>
-                <label className="label">Istri</label>
-                <select
-                  value={formData.toPersonId}
-                  onChange={(e) => setFormData({ ...formData, toPersonId: e.target.value })}
-                  className="input"
-                  required
-                >
-                  <option value="">Pilih istri...</option>
-                  {people.filter(p => p.gender === 'FEMALE' && p.id !== formData.fromPersonId).map((person) => (
-                    <option key={person.id} value={person.id}>
-                      {person.fullname} ({person.callName || 'Perempuan'})
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <SearchableSelect
+                label="Istri"
+                value={formData.toPersonId}
+                onChange={(id) => setFormData({ ...formData, toPersonId: id })}
+                options={wifeOptions}
+                placeholder="Pilih istri..."
+                required
+              />
 
               <div>
                 <label className="label">Urutan Pasangan (Opsional)</label>
@@ -392,50 +530,23 @@ export default function RelationsPage() {
             </>
           ) : (
             <>
-              <div>
-                <label className="label">Pasangan Orang Tua</label>
-                <select
-                  value={formData.fromPersonId}
-                  onChange={(e) => setFormData({ ...formData, fromPersonId: e.target.value })}
-                  className="input"
-                  required
-                >
-                  <option value="">Pilih pasangan orang tua...</option>
-                  {getCouples().map((couple, idx) => (
-                    <option key={idx} value={couple.husband.id}>
-                      {couple.husband.fullname} & {couple.wife.fullname}
-                    </option>
-                  ))}
-                  {people.filter(p => {
-                    const hasSpouse = relations.some(r => 
-                      r.relationType === 'PASANGAN' && 
-                      (r.fromPersonId === p.id || r.toPersonId === p.id)
-                    )
-                    return !hasSpouse
-                  }).map((person) => (
-                    <option key={person.id} value={person.id}>
-                      {person.fullname} (Belum pasang)
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <SearchableSelect
+                label="Orang Tua"
+                value={formData.toPersonId}
+                onChange={(id) => setFormData({ ...formData, toPersonId: id })}
+                options={parentOptions}
+                placeholder="Pilih orang tua..."
+                required
+              />
 
-              <div>
-                <label className="label">Anak</label>
-                <select
-                  value={formData.toPersonId}
-                  onChange={(e) => setFormData({ ...formData, toPersonId: e.target.value })}
-                  className="input"
-                  required
-                >
-                  <option value="">Pilih anak...</option>
-                  {people.filter(p => p.id !== formData.fromPersonId).map((person) => (
-                    <option key={person.id} value={person.id}>
-                      {person.fullname} ({person.callName || person.gender === 'MALE' ? 'Laki-laki' : 'Perempuan'})
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <SearchableSelect
+                label="Anak"
+                value={formData.fromPersonId}
+                onChange={(id) => setFormData({ ...formData, fromPersonId: id })}
+                options={childOptions}
+                placeholder="Pilih anak..."
+                required
+              />
             </>
           )}
 
@@ -449,7 +560,7 @@ export default function RelationsPage() {
                   </>
                 ) : (
                   <>
-                    <strong>{fromPerson?.fullname}</strong> adalah orang tua dari <strong>{toPerson?.fullname}</strong>
+                    <strong>{toPerson?.fullname}</strong> adalah orang tua dari <strong>{fromPerson?.fullname}</strong>
                   </>
                 )}
               </p>
