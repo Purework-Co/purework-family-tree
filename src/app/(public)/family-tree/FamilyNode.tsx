@@ -61,7 +61,7 @@ export default function FamilyNode({
   const age = getAge(data?.birth ?? null, data?.death ?? null);
 
   return (
-    <div style={style} className="flex items-center justify-center">
+    <div data-node-id={id} style={style} className="flex items-center justify-center">
       <div
         onClick={() => onClick(id)}
         className={`relative w-[180px] h-[100px] rounded-xl border-2 shadow-sm cursor-pointer

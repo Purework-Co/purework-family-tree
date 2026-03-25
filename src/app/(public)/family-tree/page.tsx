@@ -97,6 +97,45 @@ export default function FamilyTreePage() {
     await fetchData(id);
   };
 
+  const handleSearchSelect = (id: string) => {
+    if (!data || !treeRef.current) return;
+    setSelectId(id);
+
+    // Check if node exists in current tree
+    const nodeExists = data.nodes.some(n => n.id === id);
+    if (!nodeExists) {
+      // Fall back to subtree mode if not in tree
+      handleSubTree(id);
+      return;
+    }
+
+    // Use requestAnimationFrame to wait for DOM render
+    requestAnimationFrame(() => {
+      // Find the selected node's position via DOM
+      const nodeEl = treeRef.current?.querySelector(`[data-node-id="${id}"]`);
+      if (!nodeEl) return;
+
+      const containerRect = treeRef.current!.getBoundingClientRect();
+      const nodeRect = nodeEl.getBoundingClientRect();
+
+      // Node center in viewport coordinates
+      const nodeCenterX = nodeRect.left + nodeRect.width / 2 - containerRect.left;
+      const nodeCenterY = nodeRect.top + nodeRect.height / 2 - containerRect.top;
+
+      // Container center
+      const viewCenterX = containerRect.width / 2;
+      const viewCenterY = containerRect.height / 2;
+
+      // Adjust offset to center the node
+      const targetScale = Math.min(1.5, MAX_SCALE);
+      const offsetX = viewCenterX - nodeCenterX + offset.x;
+      const offsetY = viewCenterY - nodeCenterY + offset.y;
+
+      setOffset({ x: offsetX, y: offsetY });
+      setScale(targetScale);
+    });
+  };
+
   const handleResetRoot = async () => {
     setRootId("");
     setSelectId("");
@@ -263,8 +302,8 @@ export default function FamilyTreePage() {
 
           <div className="flex items-center gap-1.5 sm:gap-2">
             <SearchableSelect
-              value={rootId}
-              onChange={handleSubTree}
+              value={selectId}
+              onChange={handleSearchSelect}
               options={personOptions}
               placeholder="Cari..."
               className="w-32 sm:w-56"
