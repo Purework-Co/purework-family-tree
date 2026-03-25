@@ -60,195 +60,208 @@ async function linkChild(child: Person, parent: Person, subtype: 'BIOLOGICAL' | 
   })
 }
 
-// ─── SEED SMALL: 10 people ─────────────────────────────────────────────
+// ─── SEED SMALL: 10 people, single root, no sibling marriages ─────────
+//
+// With a single root couple, all children are siblings and cannot marry.
+// The small seed uses single-parent children to create branches, then
+// allows cousin marriages at deeper generations.
+//
+// Family tree:
+//   Gen 0 (ROOT): Budi ♂ + Siti ♀
+//   Gen 1: Ahmad ♂, Dewi ♀  (siblings, children of root)
+//   Gen 2: Ahmad→Maya ♀, Budianto ♂  (single-parent branch A)
+//          Dewi→Putri ♀, Rian ♂       (single-parent branch B)
+//   Gen 3: Budianto(branch A) + Putri(branch B) → Aldi ♂, Kevin ♂
+//          (cousins from different parent units — not siblings)
 
 async function seedSmall() {
-  console.log('Seeding small family (10 people)...')
+  console.log('Seeding small family (10 people, single root)...')
 
-  const kakek = await createPerson('Budi Santoso', 'MALE', { callName: 'Kakek Budi', birthYear: 1945, deathYear: 2020, occupation: 'Petani', hometown: 'Solo' })
-  const nenek = await createPerson('Siti Aminah', 'FEMALE', { callName: 'Nenek Siti', birthYear: 1950, occupation: 'Ibu Rumah Tangga', hometown: 'Solo' })
-  await linkCouple(kakek, nenek)
+  // Gen 0 — ROOT ancestral couple
+  const budi = await createPerson('Budi Santoso', 'MALE', { callName: 'Kakek Budi', birthYear: 1940, deathYear: 2018, occupation: 'Petani', hometown: 'Solo' })
+  const siti = await createPerson('Siti Aminah', 'FEMALE', { callName: 'Nenek Siti', birthYear: 1943, occupation: 'Ibu Rumah Tangga', hometown: 'Solo' })
+  await linkCouple(budi, siti)
 
-  const ayah = await createPerson('Ahmad Santoso', 'MALE', { callName: 'Pak Ahmad', birthYear: 1975, occupation: 'Wiraswasta', hometown: 'Jakarta' })
-  const ibu = await createPerson('Dewi Lestari', 'FEMALE', { callName: 'Bu Dewi', birthYear: 1978, occupation: 'Guru', hometown: 'Bandung' })
-  await linkChild(ayah, kakek); await linkChild(ayah, nenek)
-  await linkCouple(ayah, ibu)
+  // Gen 1 — 2 children of root
+  const ahmad = await createPerson('Ahmad Santoso', 'MALE', { callName: 'Pak Ahmad', birthYear: 1965, occupation: 'Wiraswasta', hometown: 'Jakarta' })
+  const dewi = await createPerson('Dewi Santoso', 'FEMALE', { callName: 'Bu Dewi', birthYear: 1968, occupation: 'Guru', hometown: 'Jakarta' })
+  await linkChild(ahmad, budi); await linkChild(ahmad, siti)
+  await linkChild(dewi, budi); await linkChild(dewi, siti)
 
-  const putri = await createPerson('Putri Santoso', 'FEMALE', { callName: 'Putri', birthYear: 2000, occupation: 'Mahasiswa' })
-  const rian = await createPerson('Rian Santoso', 'MALE', { callName: 'Rian', birthYear: 2003, occupation: 'Pelajar' })
-  await linkChild(putri, ayah); await linkChild(putri, ibu)
-  await linkChild(rian, ayah); await linkChild(rian, ibu)
+  // Gen 2 — Branch A: children of Ahmad (single parent)
+  const maya = await createPerson('Maya Santoso', 'FEMALE', { callName: 'Maya', birthYear: 1990, occupation: 'Dokter', hometown: 'Jakarta' })
+  const budianto = await createPerson('Budianto Santoso', 'MALE', { callName: 'Budi Kecil', birthYear: 1992, occupation: 'PNS', hometown: 'Jakarta' })
+  await linkChild(maya, ahmad)
+  await linkChild(budianto, ahmad)
 
-  const kevin = await createPerson('Kevin Santoso', 'MALE', { callName: 'Kevin', birthYear: 2022, hometown: 'Jakarta' })
-  await linkChild(kevin, putri)
+  // Gen 2 — Branch B: children of Dewi (single parent)
+  const putri = await createPerson('Putri Santoso', 'FEMALE', { callName: 'Putri', birthYear: 1993, occupation: 'Mahasiswa', hometown: 'Surabaya' })
+  const rian = await createPerson('Rian Santoso', 'MALE', { callName: 'Rian', birthYear: 1995, occupation: 'Pelajar', hometown: 'Surabaya' })
+  await linkChild(putri, dewi)
+  await linkChild(rian, dewi)
 
-  const bibi = await createPerson('Maya Santoso', 'FEMALE', { callName: 'Maya', birthYear: 1980, occupation: 'Dokter', hometown: 'Surabaya' })
-  await linkChild(bibi, kakek); await linkChild(bibi, nenek)
-  const paman = await createPerson('Budianto', 'MALE', { callName: 'Pak Budi', birthYear: 1978, occupation: 'PNS', hometown: 'Surabaya' })
-  await linkCouple(paman, bibi)
+  // Gen 3 — Cousin marriage: Budianto (from Ahmad) + Putri (from Dewi)
+  // They share grandparents (Budi, Siti) but have different parents — not siblings
+  await linkCouple(budianto, putri)
 
-  const aldi = await createPerson('Aldionto', 'MALE', { callName: 'Aldi', birthYear: 2010, occupation: 'Pelajar', hometown: 'Surabaya' })
-  await linkChild(aldi, paman); await linkChild(aldi, bibi)
+  // Gen 4 — children of Budianto+Putri
+  const aldi = await createPerson('Aldionto Santoso', 'MALE', { callName: 'Aldi', birthYear: 2018, hometown: 'Jakarta' })
+  const kevin = await createPerson('Kevin Santoso', 'MALE', { callName: 'Kevin', birthYear: 2020, hometown: 'Jakarta' })
+  await linkChild(aldi, budianto); await linkChild(aldi, putri)
+  await linkChild(kevin, budianto); await linkChild(kevin, putri)
 
-  console.log('Small seed complete: 10 people')
+  console.log('Small seed complete: 10 people, single root (Budi + Siti)')
 }
 
-// ─── SEED BIG: 100 people ──────────────────────────────────────────────
+// ─── SEED BIG: 100 people, single root, no sibling marriages ───────────
 
-const firstNamesMale = ['Budi','Ahmad','Rian','Kevin','Aldi','Budianto','Hendra','Rizki','Dedi','Fajar','Yoga','Andi','Rizal','Bayu','Dimas','Iqbal','Farhan','Reza','Raka','Gilang','Eko','Agus','Hadi','Tono','Wawan','Arif','Nanda','Irwan','Dian','Rendi']
-const firstNamesFemale = ['Siti','Dewi','Putri','Maya','Rina','Sari','Lina','Ani','Nina','Yuni','Dian','Rina','Fitri','Tari','Wulan','Indah','Citra','Ayu','Mega','Lestari','Dewi','Ratna','Sri','Lilis','Tuti','Eva','Ita','Nia','Yuli','Dina']
-const lastNames = ['Santoso','Wijaya','Pratama','Kusuma','Hidayat','Nugroho','Saputra','Wibowo','Setiawan','Hakim','Gunawan','Susanto','Raharjo','Utomo','Purnomo','Adi','Budiman','Halim','Suryadi','Handoko']
-const occupations = ['Dokter','Guru','Wiraswasta','PNS','Petani','Pegawai Swasta','Mahasiswa','Pelajar','Pengacara','Insinyur','Perawat','Arsitek','Desainer','Programmer','Pedagang','Buruh','Sopir','Ibu Rumah Tangga','Pensiunan']
+const firstNamesMale = ['Budi','Ahmad','Rian','Kevin','Aldi','Hendra','Rizki','Dedi','Fajar','Yoga','Andi','Rizal','Bayu','Dimas','Iqbal','Farhan','Reza','Raka','Gilang','Eko','Agus','Hadi','Tono','Wawan','Arif','Nanda','Irwan','Dian','Rendi','Budianto']
+const firstNamesFemale = ['Siti','Dewi','Putri','Maya','Rina','Sari','Lina','Ani','Nina','Yuni','Fitri','Tari','Wulan','Indah','Citra','Ayu','Mega','Lestari','Ratna','Sri','Lilis','Tuti','Eva','Ita','Nia','Yuli','Dina','Tina','Ani','Wati']
+const lastNames = ['Santoso','Wijaya','Pratama','Kusuma','Hidayat','Nugroho','Saputra','Wibowo','Setiawan','Hakim','Gunawan','Susanto','Raharjo','Utomo','Purnomo']
+const occupations = ['Dokter','Guru','Wiraswasta','PNS','Petani','Pegawai Swasta','Mahasiswa','Pelajar','Pengacara','Insinyur','Perawat','Arsitek','Desainer','Programmer','Pedagang','Ibu Rumah Tangga','Pensiunan']
 const cities = ['Jakarta','Bandung','Surabaya','Semarang','Solo','Yogyakarta','Malang','Medan','Makassar','Denpasar']
 
 function pick<T>(arr: T[]): T { return arr[Math.floor(Math.random() * arr.length)] }
 function rand(min: number, max: number): number { return Math.floor(Math.random() * (max - min + 1)) + min }
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr]
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
+}
 
 async function seedBig() {
-  console.log('Seeding big family (100 people)...')
+  console.log('Seeding big family (100 people, single root)...')
 
-  const all: Person[] = []
   let count = 0
 
-  async function addPerson(gender: 'MALE' | 'FEMALE', gen: number): Promise<Person> {
+  async function makePerson(gender: 'MALE' | 'FEMALE', gen: number): Promise<Person> {
     const names = gender === 'MALE' ? firstNamesMale : firstNamesFemale
     const fullname = `${pick(names)} ${pick(lastNames)}`
-    const birthYear = 1930 + gen * 25 + rand(0, 10)
-    const p = await createPerson(fullname, gender, {
+    const birthYear = 1920 + gen * 25 + rand(0, 10)
+    count++
+    return createPerson(fullname, gender, {
       callName: fullname.split(' ')[0],
       birthYear,
-      deathYear: gen <= 1 && Math.random() > 0.5 ? birthYear + rand(55, 85) : undefined,
+      deathYear: gen <= 1 && Math.random() > 0.6 ? birthYear + rand(55, 85) : undefined,
       occupation: pick(occupations),
       hometown: pick(cities),
       phone: Math.random() > 0.4 ? `081${rand(10000000, 99999999)}` : undefined,
     })
-    all.push(p)
-    count++
-    return p
   }
 
-  // Gen 0: 2 grandparents
-  const gp1 = await createPerson('Hendra Santoso', 'MALE', { callName: 'Kakek Hendra', birthYear: 1935, deathYear: 2015, occupation: 'Petani', hometown: 'Solo' })
-  const gp2 = await createPerson('Siti Rahayu', 'FEMALE', { callName: 'Nenek Siti', birthYear: 1938, deathYear: 2022, occupation: 'Ibu Rumah Tangga', hometown: 'Solo' })
-  all.push(gp1, gp2); count += 2
-  await linkCouple(gp1, gp2)
+  // Group children by their parent couple, then pair across groups
+  // This ensures siblings (same parents) never marry each other
+  function pairAcrossGroups(groups: Person[][]): [Person, Person][] {
+    const allMales = groups.flatMap(g => g.filter(p => p.gender === 'MALE'))
+    const allFemales = groups.flatMap(g => g.filter(p => p.gender === 'FEMALE'))
+    const maleGroup = new Map(allMales.map(m => [m.id, groups.findIndex(g => g.some(p => p.id === m.id))]))
+    const femaleGroup = new Map(allFemales.map(f => [f.id, groups.findIndex(g => g.some(p => p.id === f.id))]))
 
-  // Gen 1: 6 children of grandparents (3 couples + 3 singles)
+    const couples: [Person, Person][] = []
+    const usedM = new Set<string>()
+    const usedF = new Set<string>()
+
+    // Shuffle for randomness
+    const sm = shuffle(allMales)
+    const sf = shuffle(allFemales)
+
+    for (const m of sm) {
+      if (usedM.has(m.id)) continue
+      const mGrp = maleGroup.get(m.id)!
+      // Find a female from a DIFFERENT group
+      const match = sf.find(f => !usedF.has(f.id) && femaleGroup.get(f.id) !== mGrp)
+      if (match) {
+        couples.push([m, match])
+        usedM.add(m.id)
+        usedF.add(match.id)
+      }
+    }
+    return couples
+  }
+
+  // ── Gen 0: ROOT ancestral couple ──
+  const rootH = await createPerson('Hendra Santoso', 'MALE', { callName: 'Kakek Hendra', birthYear: 1925, deathYear: 2010, occupation: 'Petani', hometown: 'Solo' })
+  const rootW = await createPerson('Siti Rahayu', 'FEMALE', { callName: 'Nenek Siti', birthYear: 1928, deathYear: 2015, occupation: 'Ibu Rumah Tangga', hometown: 'Solo' })
+  await linkCouple(rootH, rootW)
+  count += 2
+
+  // ── Gen 1: 6 children of root (NO marriages — they are all siblings) ──
   const gen1: Person[] = []
   for (let i = 0; i < 6; i++) {
-    const gender = i % 2 === 0 ? 'MALE' : 'FEMALE'
-    const child = await addPerson(gender, 1)
-    await linkChild(child, gp1)
-    await linkChild(child, gp2)
-    gen1.push(child)
+    gen1.push(await makePerson(i % 2 === 0 ? 'MALE' : 'FEMALE', 1))
+  }
+  for (const child of gen1) {
+    await linkChild(child, rootH)
+    await linkChild(child, rootW)
   }
 
-  // Pair up first 4 as couples
-  await linkCouple(gen1[0], gen1[1])
-  await linkCouple(gen1[2], gen1[3])
-
-  // Gen 2: children of gen 1 couples (target ~25 people)
-  const gen2: Person[] = []
-  for (const couple of [[gen1[0], gen1[1]], [gen1[2], gen1[3]]]) {
-    const numKids = rand(3, 5)
-    for (let i = 0; i < numKids; i++) {
-      const gender = Math.random() > 0.5 ? 'MALE' : 'FEMALE'
-      const child = await addPerson(gender, 2)
-      await linkChild(child, couple[0])
-      await linkChild(child, couple[1])
-      gen2.push(child)
+  // ── Gen 2: children of gen1 people (single-parent branches) ──
+  // Each gen1 person has children independently, creating separate branches
+  const gen2Groups: Person[][] = []
+  for (const parent of gen1) {
+    const kids: Person[] = []
+    for (let i = 0; i < rand(3, 5); i++) {
+      const child = await makePerson(Math.random() > 0.5 ? 'MALE' : 'FEMALE', 2)
+      await linkChild(child, parent)
+      kids.push(child)
     }
+    gen2Groups.push(kids)
   }
-  // Add more gen2 from remaining gen1
-  for (let i = 4; i < gen1.length; i++) {
-    const numKids = rand(1, 3)
-    for (let j = 0; j < numKids; j++) {
-      const gender = Math.random() > 0.5 ? 'MALE' : 'FEMALE'
-      const child = await addPerson(gender, 2)
-      await linkChild(child, gen1[i])
-      gen2.push(child)
+  const gen2Couples = pairAcrossGroups(gen2Groups)
+  for (const [h, w] of gen2Couples) await linkCouple(h, w)
+
+  // ── Gen 3: children of gen 2 couples (grouped by parent couple) ──
+  const gen3Groups: Person[][] = []
+  for (const [h, w] of gen2Couples) {
+    const kids: Person[] = []
+    for (let i = 0; i < rand(2, 4); i++) {
+      const child = await makePerson(Math.random() > 0.5 ? 'MALE' : 'FEMALE', 3)
+      await linkChild(child, h)
+      await linkChild(child, w)
+      kids.push(child)
     }
+    gen3Groups.push(kids)
   }
 
-  // Pair up gen2 as couples
-  const gen2Couples: Person[][] = []
-  for (let i = 0; i < gen2.length - 1; i += 2) {
-    await linkCouple(gen2[i], gen2[i + 1])
-    gen2Couples.push([gen2[i], gen2[i + 1]])
-  }
-
-  // Gen 3: children of gen2 couples (target ~35 people)
-  const gen3: Person[] = []
-  for (const couple of gen2Couples) {
-    const numKids = rand(2, 4)
-    for (let i = 0; i < numKids; i++) {
-      const gender = Math.random() > 0.5 ? 'MALE' : 'FEMALE'
-      const child = await addPerson(gender, 3)
-      await linkChild(child, couple[0])
-      await linkChild(child, couple[1])
-      gen3.push(child)
-    }
-  }
-
-  // Add some adoptions
-  if (gen2.length > 3) {
+  // Adopted child
+  if (gen2Couples.length > 0) {
     const adopted = await createPerson(pick(firstNamesMale) + ' ' + pick(lastNames), 'MALE', {
-      callName: 'Adopsi', birthYear: 2000, occupation: pick(occupations), hometown: pick(cities),
+      callName: 'Adi', birthYear: 2005, occupation: pick(occupations), hometown: pick(cities),
     })
-    all.push(adopted); count++
-    await linkChild(adopted, gen2[0], 'ADOPTED')
-    if (gen2[1]) await linkChild(adopted, gen2[1], 'ADOPTED')
-    gen3.push(adopted)
+    count++
+    const [ah, aw] = gen2Couples[0]
+    await linkChild(adopted, ah, 'ADOPTED')
+    await linkChild(adopted, aw, 'ADOPTED')
+    gen3Groups[0]?.push(adopted)
   }
 
-  // Pair up gen3
-  const gen3Couples: Person[][] = []
-  for (let i = 0; i < gen3.length - 1; i += 2) {
-    await linkCouple(gen3[i], gen3[i + 1])
-    gen3Couples.push([gen3[i], gen3[i + 1]])
-  }
+  const gen3Couples = pairAcrossGroups(gen3Groups)
+  for (const [h, w] of gen3Couples) await linkCouple(h, w)
 
-  // Gen 4: grandchildren (target ~20 people)
-  for (const couple of gen3Couples) {
-    const numKids = rand(1, 3)
-    for (let i = 0; i < numKids; i++) {
-      const gender = Math.random() > 0.5 ? 'MALE' : 'FEMALE'
-      const child = await addPerson(gender, 4)
-      await linkChild(child, couple[0])
-      await linkChild(child, couple[1])
+  // ── Gen 4: grandchildren (grouped by parent couple) ──
+  for (const [h, w] of gen3Couples) {
+    for (let i = 0; i < rand(1, 3); i++) {
+      const child = await makePerson(Math.random() > 0.5 ? 'MALE' : 'FEMALE', 4)
+      await linkChild(child, h)
+      await linkChild(child, w)
     }
   }
 
-  // Fill remaining to reach ~100: add siblings, in-laws, extended family
-  const target = 100
-  while (count < target) {
+  // ── Fill remaining to ~100: add more children to existing couples ──
+  const allCouples = [...gen2Couples, ...gen3Couples]
+
+  while (count < 100 && allCouples.length > 0) {
+    const [h, w] = pick(allCouples)
     const gender = Math.random() > 0.5 ? 'MALE' : 'FEMALE'
-    const p = await addPerson(gender, rand(1, 3))
-
-    // Randomly link to an existing person as child (both parents if couple exists)
-    if (all.length > 5 && Math.random() > 0.3) {
-      const parent = pick(all.slice(0, Math.min(30, all.length)))
-      await linkChild(p, parent)
-      // Also link to spouse if parent has one
-      const spouseRel = all.find(s =>
-        s.gender !== parent.gender &&
-        s.id !== parent.id
-      )
-      if (spouseRel) {
-        await linkChild(p, spouseRel)
-      }
-    }
-    if (all.length > 10 && Math.random() > 0.7) {
-      const spouse = pick(all.slice(0, Math.min(40, all.length)))
-      if (spouse.gender !== p.gender && !spouse.id.startsWith(p.id)) {
-        try {
-          await linkCouple(spouse.id < p.id ? spouse : p, spouse.id < p.id ? p : spouse)
-        } catch { /* skip duplicate */ }
-      }
-    }
+    const child = await makePerson(gender, rand(2, 4))
+    await linkChild(child, h)
+    await linkChild(child, w)
   }
 
-  console.log(`Big seed complete: ${count} people`)
+  console.log(`Big seed complete: ${count} people, single root (Hendra + Siti)`)
 }
 
 // ─── MAIN ──────────────────────────────────────────────────────────────
