@@ -76,6 +76,7 @@ async function main() {
       fromPersonId: kakek.id,
       toPersonId: nenek.id,
       relationType: 'PASANGAN',
+      relationSubType: 'BIOLOGICAL',
       urutan: 1,
     },
   })
@@ -105,11 +106,11 @@ async function main() {
   })
 
   await prisma.personRelation.create({
-    data: { fromPersonId: ayah.id, toPersonId: kakek.id, relationType: 'ORANGTUA_ANAK' },
+    data: { fromPersonId: ayah.id, toPersonId: kakek.id, relationType: 'ORANGTUA_ANAK', relationSubType: 'BIOLOGICAL' },
   })
 
   await prisma.personRelation.create({
-    data: { fromPersonId: ayah.id, toPersonId: nenek.id, relationType: 'ORANGTUA_ANAK' },
+    data: { fromPersonId: ayah.id, toPersonId: nenek.id, relationType: 'ORANGTUA_ANAK', relationSubType: 'BIOLOGICAL' },
   })
 
   await prisma.personRelation.create({
@@ -117,6 +118,7 @@ async function main() {
       fromPersonId: ayah.id,
       toPersonId: ibu.id,
       relationType: 'PASANGAN',
+      relationSubType: 'BIOLOGICAL',
       urutan: 1,
     },
   })
@@ -155,12 +157,12 @@ async function main() {
     },
   })
 
-  await prisma.personRelation.create({ data: { fromPersonId: anak1.id, toPersonId: ayah.id, relationType: 'ORANGTUA_ANAK' } })
-  await prisma.personRelation.create({ data: { fromPersonId: anak1.id, toPersonId: ibu.id, relationType: 'ORANGTUA_ANAK' } })
-  await prisma.personRelation.create({ data: { fromPersonId: anak2.id, toPersonId: ayah.id, relationType: 'ORANGTUA_ANAK' } })
-  await prisma.personRelation.create({ data: { fromPersonId: anak2.id, toPersonId: ibu.id, relationType: 'ORANGTUA_ANAK' } })
-  await prisma.personRelation.create({ data: { fromPersonId: anak3.id, toPersonId: ayah.id, relationType: 'ORANGTUA_ANAK' } })
-  await prisma.personRelation.create({ data: { fromPersonId: anak3.id, toPersonId: ibu.id, relationType: 'ORANGTUA_ANAK' } })
+  await prisma.personRelation.create({ data: { fromPersonId: anak1.id, toPersonId: ayah.id, relationType: 'ORANGTUA_ANAK', relationSubType: 'BIOLOGICAL' } })
+  await prisma.personRelation.create({ data: { fromPersonId: anak1.id, toPersonId: ibu.id, relationType: 'ORANGTUA_ANAK', relationSubType: 'BIOLOGICAL' } })
+  await prisma.personRelation.create({ data: { fromPersonId: anak2.id, toPersonId: ayah.id, relationType: 'ORANGTUA_ANAK', relationSubType: 'BIOLOGICAL' } })
+  await prisma.personRelation.create({ data: { fromPersonId: anak2.id, toPersonId: ibu.id, relationType: 'ORANGTUA_ANAK', relationSubType: 'BIOLOGICAL' } })
+  await prisma.personRelation.create({ data: { fromPersonId: anak3.id, toPersonId: ayah.id, relationType: 'ORANGTUA_ANAK', relationSubType: 'BIOLOGICAL' } })
+  await prisma.personRelation.create({ data: { fromPersonId: anak3.id, toPersonId: ibu.id, relationType: 'ORANGTUA_ANAK', relationSubType: 'BIOLOGICAL' } })
 
   const cucu1 = await prisma.person.create({
     data: {
@@ -173,8 +175,7 @@ async function main() {
     },
   })
 
-  await prisma.personRelation.create({
-    data: { fromPersonId: cucu1.id, toPersonId: anak1.id, relationType: 'ORANGTUA_ANAK' },
+  await prisma.personRelation.create({ data: { fromPersonId: cucu1.id, toPersonId: anak1.id, relationType: 'ORANGTUA_ANAK', relationSubType: 'BIOLOGICAL' },
   })
 
   const bibi = await prisma.person.create({
@@ -189,8 +190,8 @@ async function main() {
     },
   })
 
-  await prisma.personRelation.create({ data: { fromPersonId: bibi.id, toPersonId: kakek.id, relationType: 'ORANGTUA_ANAK' } })
-  await prisma.personRelation.create({ data: { fromPersonId: bibi.id, toPersonId: nenek.id, relationType: 'ORANGTUA_ANAK' } })
+  await prisma.personRelation.create({ data: { fromPersonId: bibi.id, toPersonId: kakek.id, relationType: 'ORANGTUA_ANAK', relationSubType: 'BIOLOGICAL' } })
+  await prisma.personRelation.create({ data: { fromPersonId: bibi.id, toPersonId: nenek.id, relationType: 'ORANGTUA_ANAK', relationSubType: 'BIOLOGICAL' } })
 
   const suamiBibi = await prisma.person.create({
     data: {
@@ -209,6 +210,7 @@ async function main() {
       fromPersonId: bibi.id,
       toPersonId: suamiBibi.id,
       relationType: 'PASANGAN',
+      relationSubType: 'BIOLOGICAL',
       urutan: 1,
     },
   })
@@ -225,8 +227,8 @@ async function main() {
     },
   })
 
-  await prisma.personRelation.create({ data: { fromPersonId: keponakan.id, toPersonId: bibi.id, relationType: 'ORANGTUA_ANAK' } })
-  await prisma.personRelation.create({ data: { fromPersonId: keponakan.id, toPersonId: suamiBibi.id, relationType: 'ORANGTUA_ANAK' } })
+  await prisma.personRelation.create({ data: { fromPersonId: keponakan.id, toPersonId: bibi.id, relationType: 'ORANGTUA_ANAK', relationSubType: 'BIOLOGICAL' } })
+  await prisma.personRelation.create({ data: { fromPersonId: keponakan.id, toPersonId: suamiBibi.id, relationType: 'ORANGTUA_ANAK', relationSubType: 'BIOLOGICAL' } })
 
   console.log('Created family tree with:')
   console.log('- 1 Kakek & 1 Nenek')
