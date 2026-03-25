@@ -1,145 +1,157 @@
-# PureWork Family
+# PureWork Family Tree
 
-Aplikasi Pohon Keluarga Digital dengan Next.js, PostgreSQL, dan Prisma.
+A digital family tree application built with Next.js, PostgreSQL, and Prisma. Features an interactive tree visualization, family statistics dashboard, and role-based management interface.
 
-## Fitur
+## Features
 
-- **Dashboard Admin/Contributor**: CRUD data anggota keluarga dan relasi
-- **Visualisasi Pohon Keluarga**: Tampilan tree interaktif dengan zoom/pan
-- **Statistik Publik**: Statistik keluarga (usia, jumlah anggota, dll)
-- **Autentikasi**: Login dengan username & password
-- **Role-based Access**: Admin dan Contributor
-- **Responsif**: Nyaman digunakan di HP
-- **Bahasa Indonesia**: Seluruh interface dalam Bahasa Indonesia
+- **Interactive Tree Visualization** — zoom/pan (mouse + touch), search people, drill-down sub-trees
+- **PDF Export** — download the family tree as a landscape A4 PDF
+- **Rich Node Display** — name, age, hometown, phone number, WhatsApp link
+- **Detail Panel** — click any node to see full profile, relations, kids count
+- **Statistics Dashboard** — age distribution, gender split, occupation breakdown
+- **Role-Based Access** — Admin (full control) and Contributor (manage data)
+- **Public Password Gate** — family tree and statistics protected by a public password
+- **Smart Pagination** — numbered page buttons with intelligent gaps
+- **Searchable Dropdowns** — type-to-filter across all person selection fields
+- **Mobile Responsive** — touch support for pan/drag, collapsible menu on small screens
+- **Docker Support** — multi-stage build, Docker Compose with PostgreSQL
 
-## Requirements
+## Quick Start
 
-- Node.js 18+
-- PostgreSQL database
-
-## Setup Instructions
-
-### 1. Clone dan Install Dependencies
+### Docker (Recommended)
 
 ```bash
+git clone <repo-url> && cd purework-family
+docker compose up -d
+
+# Seed initial data
+docker compose --profile seed run seed
+
+# Or seed with 100 people for testing
+SEED_SIZE=big docker compose --profile seed run seed
+```
+
+Open http://localhost:3000
+
+### Manual Setup
+
+**Requirements:** Node.js 20+, PostgreSQL
+
+```bash
+# 1. Install dependencies
 npm install
-```
 
-### 2. Setup Database PostgreSQL
+# 2. Configure environment
+cp .env.example .env  # edit DATABASE_URL, NEXTAUTH_SECRET
 
-Buat database PostgreSQL dengan nama `purework_family`:
-
-```bash
-# Jika menggunakan Docker
-docker run --name postgres -e POSTGRES_PASSWORD=password -e POSTGRES_DB=purework_family -p 5432:5432 -d postgres
-
-# Jika menggunakan local PostgreSQL
-createdb purework_family
-```
-
-### 3. Konfigurasi Environment
-
-Edit file `.env` dan sesuaikan `DATABASE_URL`:
-
-```env
-DATABASE_URL="postgresql://postgres:password@localhost:5432/purework_family?schema=public"
-NEXTAUTH_SECRET="your-secret-key-change-in-production"
-NEXTAUTH_URL="http://localhost:3000"
-```
-
-Ganti:
-- `postgres` → username PostgreSQL Anda
-- `password` → password PostgreSQL Anda
-
-### 4. Setup Database
-
-Jalankan migration dan seed:
-
-```bash
-# Generate Prisma Client
-npx prisma generate
-
-# Push schema ke database
+# 3. Setup database
 npx prisma db push
+npx prisma db seed           # 10 people (default)
+# or
+SEED_SIZE=big npx prisma db seed  # 100 people
 
-# Seed data awal (membuat admin user)
-npx prisma db seed
-```
-
-### 5. Jalankan Aplikasi
-
-```bash
+# 4. Start development server
 npm run dev
 ```
 
-Buka http://localhost:3000
+Open http://localhost:3000
+
+## Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DATABASE_URL` | `postgresql://postgres:password@localhost:5432/purework_family` | PostgreSQL connection string |
+| `NEXTAUTH_SECRET` | `your-secret-key-change-in-production` | JWT signing key (change in production!) |
+| `NEXTAUTH_URL` | `http://localhost:3000` | Application URL |
+| `SEED_SIZE` | `small` | Seed mode: `small` (10 people) or `big` (100 people) |
 
 ## Default Credentials
 
-Setelah seed, Anda bisa login dengan:
-
 | Role | Username | Password |
 |------|----------|----------|
-| Admin | admin | admin123 |
-| Public (visualisasi/statistik) | - | public123 |
+| Admin | `admin` | `admin123` |
+| Contributor | `contributor` | `admin123` |
+| Public (tree/stats) | — | `public123` |
 
-## Halaman
+## Routes
 
-| Route | Akses | Deskripsi |
-|-------|-------|-----------|
+| Route | Access | Description |
+|-------|--------|-------------|
 | `/` | Public | Landing page |
-| `/login` | Public | Login dashboard |
-| `/family-tree` | Public (password) | Visualisasi pohon keluarga |
-| `/statistics` | Public (password) | Statistik keluarga |
-| `/dashboard` | Admin/Contributor | Dashboard utama |
-| `/dashboard/people` | Admin/Contributor | CRUD anggota keluarga |
-| `/dashboard/relations` | Admin/Contributor | CRUD relasi |
-| `/dashboard/users` | Admin only | Kelola user |
-| `/dashboard/settings` | Admin only | Pengaturan (nama keluarga, password publik) |
+| `/login` | Public | Dashboard login |
+| `/family-tree` | Public (password) | Interactive tree visualization |
+| `/statistics` | Public (password) | Family statistics |
+| `/dashboard` | Authenticated | Stats overview |
+| `/dashboard/people` | Authenticated | Manage family members |
+| `/dashboard/relations` | Authenticated | Manage relationships |
+| `/dashboard/users` | Admin only | Manage users |
+| `/dashboard/settings` | Admin only | Family name, public password |
 
-## Data Fields
+## Docker
 
-### Anggota Keluarga
-- Nama Lengkap (wajib)
-- Nama Panggilan
-- Tanggal Lahir
-- Tanggal Wafat
-- Jenis Kelamin (Laki-laki/Perempuan)
-- Pekerjaan
-- Kampung Halaman
-- Domisili
+### Build and Run
 
-### Relasi
-- Ayah
-- Ibu
-- Suami
-- Istri
-- Anak
+```bash
+# Start app + database
+docker compose up -d
+
+# Run seed (first time or reset)
+docker compose --profile seed run seed
+
+# View logs
+docker compose logs -f app
+```
+
+### Podman
+
+Works with `podman compose` (Podman 4.1+):
+
+```bash
+podman compose up -d
+podman compose --profile seed run seed
+```
+
+### Production Deployment
+
+1. Set `NEXTAUTH_SECRET` to a strong random value
+2. Set `NEXTAUTH_URL` to your domain
+3. Use a persistent PostgreSQL instance
+4. Run `docker compose up -d`
+
+## Database Schema
+
+### Person
+- `fullname`, `callName`, `gender` (MALE/FEMALE)
+- `dateOfBirth`, `dateOfDeath`
+- `occupation`, `hometown`, `domicile`, `phone`
+
+### PersonRelation
+- `fromPersonId` → `toPersonId` with `relationType`:
+  - `PASANGAN` (spouse) — `fromPersonId` = husband, `toPersonId` = wife
+  - `ORANGTUA_ANAK` (parent-child) — `fromPersonId` = child, `toPersonId` = parent
+- `relationSubType`: `BIOLOGICAL`, `ADOPTED`, `DIVORCED`
+- `urutan`: spouse order (1st, 2nd, etc.)
+
+## Development
+
+```bash
+npm run dev      # Start dev server
+npm run build    # Production build
+npm run lint     # ESLint check
+npx prisma studio  # Database browser (http://localhost:5555)
+```
 
 ## Tech Stack
 
-- **Framework**: Next.js 14 (App Router)
-- **Database**: PostgreSQL
-- **ORM**: Prisma
-- **Auth**: NextAuth.js
-- **UI**: Tailwind CSS + Custom Components
-- **Icons**: Lucide React
+- **Framework:** Next.js 14 (App Router, standalone output)
+- **Database:** PostgreSQL 16
+- **ORM:** Prisma 5
+- **Auth:** NextAuth.js
+- **UI:** Tailwind CSS, Lucide React icons
+- **Tree:** react-family-tree + relatives-tree
+- **PDF:** html-to-image + jsPDF
+- **Search:** Custom SearchableSelect component
 
-## Deployment
-
-Untuk production:
-
-1. Set environment variables di hosting:
-   - `DATABASE_URL`
-   - `NEXTAUTH_SECRET`
-   - `NEXTAUTH_URL`
-
-2. Build aplikasi:
-```bash
-npm run build
-npm start
-```
-
-## Lisensi
+## License
 
 MIT
