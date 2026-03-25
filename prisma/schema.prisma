@@ -51,21 +51,28 @@ enum Gender {
 }
 
 model PersonRelation {
-  id           String        @id @default(uuid())
-  fromPersonId String
-  toPersonId   String
-  relationType RelationType
-  urutan       Int           @default(1)
+  id               String           @id @default(uuid())
+  fromPersonId     String
+  toPersonId       String
+  relationType     RelationType
+  relationSubType  RelationSubType  @default(BIOLOGICAL)
+  urutan           Int              @default(1)
 
-  fromPerson   Person        @relation("FromPerson", fields: [fromPersonId], references: [id], onDelete: Cascade)
-  toPerson     Person        @relation("ToPerson", fields: [toPersonId], references: [id], onDelete: Cascade)
+  fromPerson       Person           @relation("FromPerson", fields: [fromPersonId], references: [id], onDelete: Cascade)
+  toPerson         Person           @relation("ToPerson", fields: [toPersonId], references: [id], onDelete: Cascade)
 
-  createdAt    DateTime      @default(now())
+  createdAt        DateTime         @default(now())
 
-  @@unique([fromPersonId, toPersonId, relationType])
+  @@unique([fromPersonId, toPersonId, relationType, relationSubType])
 }
 
 enum RelationType {
   PASANGAN
   ORANGTUA_ANAK
+}
+
+enum RelationSubType {
+  BIOLOGICAL
+  ADOPTED
+  DIVORCED
 }
