@@ -40,13 +40,65 @@ function mapRelType(
   }
 }
 
-export async function GET() {
+const MAX_SUBTREE_NODES = 200;
+
+function bfsFromRoot(
+  rootId: string,
+  nodes: Map<string, TreeNode>,
+): Set<string> {
+  const visited = new Set<string>();
+  const queue: string[] = [rootId];
+
+  while (queue.length > 0 && visited.size < MAX_SUBTREE_NODES) {
+    const id = queue.shift()!;
+    if (visited.has(id)) continue;
+    visited.add(id);
+
+    const node = nodes.get(id);
+    if (!node) continue;
+
+    for (const r of node.parents) if (!visited.has(r.id)) queue.push(r.id);
+    for (const r of node.children) if (!visited.has(r.id)) queue.push(r.id);
+    for (const r of node.spouses) if (!visited.has(r.id)) queue.push(r.id);
+    for (const r of node.siblings) if (!visited.has(r.id)) queue.push(r.id);
+  }
+
+  return visited;
+}
+
+function filterRelationsByNodes(
+  reachableIds: Set<string>,
+  nodes: Map<string, TreeNode>,
+): Map<string, TreeNode> {
+  const filtered = new Map<string, TreeNode>();
+
+  for (const id of Array.from(reachableIds)) {
+    const node = nodes.get(id);
+    if (!node) continue;
+    filtered.set(id, {
+      ...node,
+      parents: node.parents.filter((r) => reachableIds.has(r.id)),
+      children: node.children.filter((r) => reachableIds.has(r.id)),
+      spouses: node.spouses.filter((r) => reachableIds.has(r.id)),
+      siblings: node.siblings.filter((r) => reachableIds.has(r.id)),
+    });
+  }
+
+  return filtered;
+}
+
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const rootId = searchParams.get("rootId") || "";
+
     const [people, relations, settings] = await Promise.all([
       prisma.person.findMany(),
       prisma.personRelation.findMany(),
       prisma.settings.findUnique({ where: { id: "default" } }),
     ]);
+
+    const totalNodes = people.length;
 
     const personMap = new Map<string, PersonData>();
     for (const p of people) {
@@ -146,10 +198,20 @@ export async function GET() {
       }
     }
 
+    let resultNodes: TreeNode[];
+    if (rootId && nodes.has(rootId)) {
+      const reachable = bfsFromRoot(rootId, nodes);
+      const filtered = filterRelationsByNodes(reachable, nodes);
+      resultNodes = Array.from(filtered.values());
+    } else {
+      resultNodes = Array.from(nodes.values());
+    }
+
     return NextResponse.json({
       familyName: settings?.familyName || "Keluarga",
       updatedAt: settings?.updatedAt?.toISOString() || null,
-      nodes: Array.from(nodes.values()),
+      totalNodes,
+      nodes: resultNodes,
     });
   } catch (error) {
     console.error("TREE ERROR", error);
