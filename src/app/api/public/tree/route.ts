@@ -11,6 +11,8 @@ type PersonData = {
   callName: string | null;
   gender: "male" | "female";
   occupation: string | null;
+  hometown: string | null;
+  phone: string | null;
   birth: string | null;
   death: string | null;
 };
@@ -53,6 +55,8 @@ export async function GET() {
         callName: p.callName,
         gender: p.gender === "MALE" ? "male" : "female",
         occupation: p.occupation,
+        hometown: p.hometown,
+        phone: p.phone,
         birth: p.dateOfBirth?.toISOString() || null,
         death: p.dateOfDeath?.toISOString() || null,
       });
@@ -144,6 +148,7 @@ export async function GET() {
 
     return NextResponse.json({
       familyName: settings?.familyName || "Keluarga",
+      updatedAt: settings?.updatedAt?.toISOString() || null,
       nodes: Array.from(nodes.values()),
     });
   } catch (error) {

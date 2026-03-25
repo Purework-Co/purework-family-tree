@@ -24,6 +24,7 @@ type Person = {
   occupation: string | null
   hometown: string | null
   domicile: string | null
+  phone: string | null
 }
 
 function SortHeader({
@@ -78,7 +79,8 @@ export default function PeoplePage() {
     gender: 'MALE' as 'MALE' | 'FEMALE',
     occupation: '',
     hometown: '',
-    domicile: ''
+    domicile: '',
+    phone: ''
   })
 
   useEffect(() => {
@@ -156,7 +158,8 @@ export default function PeoplePage() {
       gender: person.gender,
       occupation: person.occupation || '',
       hometown: person.hometown || '',
-      domicile: person.domicile || ''
+      domicile: person.domicile || '',
+      phone: person.phone || ''
     })
     setShowModal(true)
   }
@@ -185,7 +188,8 @@ export default function PeoplePage() {
       gender: 'MALE',
       occupation: '',
       hometown: '',
-      domicile: ''
+      domicile: '',
+      phone: ''
     })
     setError('')
   }
@@ -254,6 +258,7 @@ export default function PeoplePage() {
                 <SortHeader label="Nama Lengkap" field="fullname" currentField={sortField} order={sortOrder} onSort={handleSort} />
               </th>
               <th>Nama Panggilan</th>
+              <th>Telepon</th>
               <th>
                 <SortHeader label="Jenis Kelamin" field="gender" currentField={sortField} order={sortOrder} onSort={handleSort} />
               </th>
@@ -266,11 +271,11 @@ export default function PeoplePage() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6} className="text-center py-8">Memuat...</td>
+                <td colSpan={7} className="text-center py-8">Memuat...</td>
               </tr>
             ) : people.length === 0 ? (
               <tr>
-                <td colSpan={6} className="text-center py-8 text-[#6B7280]">
+                <td colSpan={7} className="text-center py-8 text-[#6B7280]">
                   {search || genderFilter ? 'Tidak ada hasil yang cocok' : 'Belum ada data anggota keluarga'}
                 </td>
               </tr>
@@ -280,6 +285,7 @@ export default function PeoplePage() {
                   <td className="text-[#6B7280] text-sm">{(page - 1) * 10 + idx + 1}</td>
                   <td className="font-medium">{person.fullname}</td>
                   <td>{person.callName || '-'}</td>
+                  <td>{person.phone || '-'}</td>
                   <td>
                     <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
                       person.gender === 'MALE' 
@@ -371,6 +377,16 @@ export default function PeoplePage() {
 
           <div className="grid md:grid-cols-2 gap-4">
             <div>
+              <label className="label">Telepon</label>
+              <input
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                className="input"
+                placeholder="08xxxxxxxxxx"
+              />
+            </div>
+            <div>
               <label className="label">Jenis Kelamin *</label>
               <select
                 value={formData.gender}
@@ -382,6 +398,9 @@ export default function PeoplePage() {
                 <option value="FEMALE">Perempuan</option>
               </select>
             </div>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-4">
             <div>
               <label className="label">Pekerjaan</label>
               <input

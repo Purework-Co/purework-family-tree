@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import Link from "next/link";
 import ReactFamilyTree from "react-family-tree";
 import type { ExtNode, Node } from "relatives-tree/lib/types";
-import { Users, ZoomIn, ZoomOut, Maximize } from "lucide-react";
+import { Users, ZoomIn, ZoomOut, Maximize, BarChart3, Lock, LogOut } from "lucide-react";
 import FamilyNode, { NODE_WIDTH, NODE_HEIGHT } from "./FamilyNode";
 import NodeDetails from "./NodeDetails";
 
@@ -12,6 +13,8 @@ interface PersonData {
   callName: string | null;
   gender: "male" | "female";
   occupation: string | null;
+  hometown: string | null;
+  phone: string | null;
   birth: string | null;
   death: string | null;
 }
@@ -33,12 +36,23 @@ interface TreeNode {
 
 interface TreeData {
   familyName: string;
+  updatedAt: string | null;
   nodes: TreeNode[];
 }
 
 const SCALE_STEP = 0.15;
 const MIN_SCALE = 0.1;
 const MAX_SCALE = 3;
+
+function formatDate(dateStr: string | null): string {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  return d.toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
 
 export default function FamilyTreePage() {
   const [data, setData] = useState<TreeData | null>(null);
@@ -48,8 +62,22 @@ export default function FamilyTreePage() {
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [authenticated, setAuthenticated] = useState(false);
+  const [password, setPassword] = useState("");
+  const [authError, setAuthError] = useState("");
+  const [checking, setChecking] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
+    const savedAuth = localStorage.getItem("public_auth");
+    if (savedAuth) {
+      setAuthenticated(true);
+    }
+    setAuthLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (!authenticated) return;
     fetch("/api/public/tree")
       .then((r) => r.json())
       .then((d: TreeData) => {
@@ -63,7 +91,37 @@ export default function FamilyTreePage() {
           setRootId(roots.length > 0 ? roots[0].id : d.nodes[0].id);
         }
       });
-  }, []);
+  }, [authenticated]);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError("");
+    setChecking(true);
+    try {
+      const res = await fetch("/api/public/validate-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+      const result = await res.json();
+      if (result.valid) {
+        setAuthenticated(true);
+        localStorage.setItem("public_auth", "true");
+      } else {
+        setAuthError("Password salah");
+      }
+    } catch {
+      setAuthError("Terjadi kesalahan");
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("public_auth");
+    setAuthenticated(false);
+    setData(null);
+  };
 
   const nodesMap = useMemo(
     () => (data ? new Map(data.nodes.map((n) => [n.id, n])) : new Map()),
@@ -117,6 +175,57 @@ export default function FamilyTreePage() {
     setScale((s) => Math.max(MIN_SCALE, Math.min(MAX_SCALE, s + delta)));
   };
 
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-[#F4F1DE]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#E07A5F]"></div>
+      </div>
+    );
+  }
+
+  if (!authenticated) {
+    return (
+      <div className="min-h-screen bg-[#F4F1DE] flex items-center justify-center px-4">
+        <div className="w-full max-w-md">
+          <div className="card text-center">
+            <div className="w-16 h-16 bg-[#E07A5F] rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <Lock className="w-8 h-8 text-white" />
+            </div>
+            <h1 className="text-2xl font-bold text-[#2D3142] mb-2">
+              Pohon Keluarga
+            </h1>
+            <p className="text-[#6B7280] mb-6">
+              Masukkan password publik untuk melihat pohon keluarga
+            </p>
+
+            <form onSubmit={handleLogin} className="space-y-4">
+              {authError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
+                  {authError}
+                </div>
+              )}
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="input"
+                placeholder="Masukkan password"
+                required
+              />
+              <button
+                type="submit"
+                disabled={checking}
+                className="btn btn-primary w-full"
+              >
+                {checking ? "Memuat..." : "Lihat Pohon Keluarga"}
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!data) {
     return (
       <div className="flex items-center justify-center h-screen bg-[#F4F1DE]">
@@ -128,15 +237,38 @@ export default function FamilyTreePage() {
   return (
     <div className="h-screen flex flex-col bg-[#F4F1DE]">
       <header className="bg-white shadow-sm flex-shrink-0 z-20 relative">
-        <div className="max-w-full px-6 py-3 flex items-center justify-between">
+        <div className="max-w-full px-6 py-2 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Users className="text-[#E07A5F]" size={22} />
-            <h1 className="font-bold text-lg text-[#2D3142]">
-              {data.familyName}
-            </h1>
+            <div>
+              <h1 className="font-bold text-lg text-[#2D3142]">
+                {data.familyName}
+              </h1>
+              {data.updatedAt && (
+                <p className="text-[10px] text-[#9CA3AF]">
+                  Diperbarui: {formatDate(data.updatedAt)}
+                </p>
+              )}
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
+            <Link
+              href="/statistics"
+              className="flex items-center gap-1.5 text-sm text-[#81B29A] hover:text-[#6B9F85] border border-[#81B29A] hover:bg-[#81B29A]/10 rounded-lg px-3 py-1.5 transition-colors"
+            >
+              <BarChart3 size={16} />
+              Statistik
+            </Link>
+
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-1.5 text-sm text-[#6B7280] hover:text-[#EF4444] hover:bg-red-50 rounded-lg px-3 py-1.5 transition-colors"
+            >
+              <LogOut size={16} />
+              Keluar
+            </button>
+
             <select
               value={rootId}
               onChange={(e) => handleSubTree(e.target.value)}

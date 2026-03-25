@@ -1,12 +1,14 @@
 "use client";
 
-import { X, Heart, Users, Baby, User } from "lucide-react";
+import { X, Heart, Users, Baby, User, Phone, MessageCircle } from "lucide-react";
 
 interface PersonData {
   fullname: string;
   callName: string | null;
   gender: "male" | "female";
   occupation: string | null;
+  hometown: string | null;
+  phone: string | null;
   birth: string | null;
   death: string | null;
 }
@@ -96,6 +98,14 @@ function RelationList({
   );
 }
 
+function toWhatsAppLink(phone: string): string {
+  const cleaned = phone.replace(/[^0-9]/g, "");
+  const withCountry = cleaned.startsWith("0")
+    ? "62" + cleaned.slice(1)
+    : cleaned;
+  return `https://wa.me/${withCountry}`;
+}
+
 export default function NodeDetails({ node, allNodes, onClose }: Props) {
   const nodesMap = new Map(allNodes.map((n) => [n.id, n]));
   const isDeceased = !!node.data.death;
@@ -169,6 +179,14 @@ export default function NodeDetails({ node, allNodes, onClose }: Props) {
               </p>
             </div>
           )}
+          {node.data.hometown && (
+            <div>
+              <span className="text-[#6B7280] text-xs">Asal</span>
+              <p className="font-medium text-[#2D3142]">
+                {node.data.hometown}
+              </p>
+            </div>
+          )}
           <div>
             <span className="text-[#6B7280] text-xs">Tanggal Lahir</span>
             <p className="font-medium text-[#2D3142]">
@@ -184,6 +202,27 @@ export default function NodeDetails({ node, allNodes, onClose }: Props) {
             </div>
           )}
         </div>
+
+        {node.data.phone && (
+          <div className="flex items-center gap-2">
+            <a
+              href={`tel:${node.data.phone}`}
+              className="flex items-center gap-1.5 text-xs text-[#6B7280] hover:text-[#2D3142] transition-colors"
+            >
+              <Phone size={14} />
+              {node.data.phone}
+            </a>
+            <a
+              href={toWhatsAppLink(node.data.phone)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 text-xs text-green-600 hover:text-green-700 transition-colors"
+            >
+              <MessageCircle size={14} />
+              WhatsApp
+            </a>
+          </div>
+        )}
 
         <hr className="border-gray-100" />
 
@@ -209,7 +248,7 @@ export default function NodeDetails({ node, allNodes, onClose }: Props) {
           typeLabel={typeLabel}
         />
         <RelationList
-          title="Anak"
+          title={`Anak${node.children.length > 0 ? ` (${node.children.length})` : ""}`}
           icon={<Baby size={14} className="text-[#81B29A]" />}
           relations={node.children}
           nodesMap={nodesMap}

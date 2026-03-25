@@ -75,7 +75,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { fullname, callName, dateOfBirth, dateOfDeath, gender, occupation, hometown, domicile } = body
+    const { fullname, callName, dateOfBirth, dateOfDeath, gender, occupation, hometown, domicile, phone } = body
 
     if (!fullname || !gender) {
       return NextResponse.json({ error: 'Nama lengkap dan jenis kelamin wajib diisi' }, { status: 400 })
@@ -91,6 +91,7 @@ export async function POST(request: Request) {
         occupation,
         hometown,
         domicile,
+        phone,
       }
     })
 

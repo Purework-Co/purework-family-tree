@@ -10,6 +10,8 @@ interface PersonData {
   callName: string | null;
   gender: "male" | "female";
   occupation: string | null;
+  hometown: string | null;
+  phone: string | null;
   birth: string | null;
   death: string | null;
 }
@@ -98,9 +100,14 @@ export default function FamilyNode({
               {isDeceased ? `Almarhum (${age})` : age}
             </div>
           )}
-          {data?.occupation && (
+          {data?.hometown && (
             <div className="text-[10px] text-[#81B29A] truncate max-w-[130px]">
-              {data.occupation}
+              {data.hometown}
+            </div>
+          )}
+          {data?.phone && (
+            <div className="text-[10px] text-[#6B7280] truncate max-w-[130px]">
+              {data.phone}
             </div>
           )}
         </div>
