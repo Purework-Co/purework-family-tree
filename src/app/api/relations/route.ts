@@ -50,7 +50,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { fromPersonId, toPersonId, relationType, urutan } = body
+    const { fromPersonId, toPersonId, relationType, relationSubType, urutan } = body
 
     if (!fromPersonId || !toPersonId || !relationType) {
       return NextResponse.json({ error: 'Data tidak lengkap' }, { status: 400 })
@@ -64,7 +64,8 @@ export async function POST(request: Request) {
       where: {
         fromPersonId,
         toPersonId,
-        relationType
+        relationType,
+        relationSubType: relationSubType || 'BIOLOGICAL'
       }
     })
 
@@ -77,6 +78,7 @@ export async function POST(request: Request) {
         fromPersonId,
         toPersonId,
         relationType,
+        relationSubType: relationSubType || 'BIOLOGICAL',
         urutan: urutan ? parseInt(urutan.toString()) : 1
       },
       include: {
