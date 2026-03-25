@@ -4,8 +4,6 @@ import { useState, useEffect, useRef } from 'react'
 import { 
   Plus, 
   Trash2, 
-  ChevronLeft,
-  ChevronRight,
   Heart,
   Users,
   Search,
@@ -17,6 +15,7 @@ import {
   Filter
 } from 'lucide-react'
 import { Dialog, ConfirmDialog } from '@/components/dialog'
+import Pagination from '@/components/Pagination'
 
 type Person = {
   id: string
@@ -564,27 +563,7 @@ export default function RelationsPage() {
         </table>
       </div>
 
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 mt-4">
-          <button
-            onClick={() => setPage(p => Math.max(1, p - 1))}
-            disabled={page === 1}
-            className="btn btn-ghost disabled:opacity-50"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <span className="px-4 text-sm text-[#6B7280]">
-            Halaman {page} dari {totalPages}
-          </span>
-          <button
-            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-            disabled={page === totalPages}
-            className="btn btn-ghost disabled:opacity-50"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        </div>
-      )}
+      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
 
       <Dialog
         open={showModal}
