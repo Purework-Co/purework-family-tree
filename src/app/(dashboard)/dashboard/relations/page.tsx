@@ -23,6 +23,7 @@ type Relation = {
   fromPersonId: string
   toPersonId: string
   relationType: string
+  relationSubType: string
   urutan: number
   fromPerson: Person
   toPerson: Person
@@ -32,6 +33,17 @@ const relationTypes = [
   { value: 'PASANGAN', label: 'Pasangan (Suami/Istri)' },
   { value: 'ORANGTUA_ANAK', label: 'Orang Tua - Anak' },
 ]
+
+const relationSubTypes = [
+  { value: 'BIOLOGICAL', label: 'Biologis' },
+  { value: 'ADOPTED', label: 'Adopsi' },
+  { value: 'DIVORCED', label: 'Bercerai' },
+]
+
+const subTypeOptions: Record<string, string[]> = {
+  PASANGAN: ['BIOLOGICAL', 'DIVORCED'],
+  ORANGTUA_ANAK: ['BIOLOGICAL', 'ADOPTED'],
+}
 
 export default function RelationsPage() {
   const [relations, setRelations] = useState<Relation[]>([])
@@ -46,6 +58,7 @@ export default function RelationsPage() {
     fromPersonId: '',
     toPersonId: '',
     relationType: 'ORANGTUA_ANAK',
+    relationSubType: 'BIOLOGICAL',
     urutan: ''
   })
 
@@ -122,6 +135,7 @@ export default function RelationsPage() {
       fromPersonId: '',
       toPersonId: '',
       relationType: 'ORANGTUA_ANAK',
+      relationSubType: 'BIOLOGICAL',
       urutan: ''
     })
     setError('')
@@ -129,6 +143,10 @@ export default function RelationsPage() {
 
   const getRelationLabel = (type: string) => {
     return relationTypes.find(r => r.value === type)?.label || type
+  }
+
+  const getSubTypeLabel = (subType: string) => {
+    return relationSubTypes.find(r => r.value === subType)?.label || subType
   }
 
   const getRelationDescription = (relation: Relation) => {
@@ -174,6 +192,7 @@ export default function RelationsPage() {
           <thead>
             <tr>
               <th>Jenis Hubungan</th>
+              <th>Subtipe</th>
               <th>Detail</th>
               <th>Aksi</th>
             </tr>
@@ -181,11 +200,11 @@ export default function RelationsPage() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={3} className="text-center py-8">Memuat...</td>
+                <td colSpan={4} className="text-center py-8">Memuat...</td>
               </tr>
             ) : relations.length === 0 ? (
               <tr>
-                <td colSpan={3} className="text-center py-8 text-[#6B7280]">
+                <td colSpan={4} className="text-center py-8 text-[#6B7280]">
                   Belum ada relasi. Silakan tambah relasi terlebih dahulu.
                 </td>
               </tr>
@@ -206,6 +225,15 @@ export default function RelationsPage() {
                       </div>
                       <span className="font-medium">{getRelationLabel(relation.relationType)}</span>
                     </div>
+                  </td>
+                  <td>
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      relation.relationSubType === 'BIOLOGICAL' ? 'bg-green-100 text-green-700' :
+                      relation.relationSubType === 'ADOPTED' ? 'bg-purple-100 text-purple-700' :
+                      'bg-orange-100 text-orange-700'
+                    }`}>
+                      {getSubTypeLabel(relation.relationSubType)}
+                    </span>
                   </td>
                   <td className="text-sm">
                     {getRelationDescription(relation)}
@@ -282,7 +310,7 @@ export default function RelationsPage() {
             <label className="label">Jenis Hubungan</label>
             <select
               value={formData.relationType}
-              onChange={(e) => setFormData({ ...formData, relationType: e.target.value, fromPersonId: '', toPersonId: '' })}
+              onChange={(e) => setFormData({ ...formData, relationType: e.target.value, relationSubType: 'BIOLOGICAL', fromPersonId: '', toPersonId: '' })}
               className="input"
               required
             >
@@ -291,6 +319,24 @@ export default function RelationsPage() {
                   {type.label}
                 </option>
               ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="label">Subtipe Hubungan</label>
+            <select
+              value={formData.relationSubType}
+              onChange={(e) => setFormData({ ...formData, relationSubType: e.target.value })}
+              className="input"
+              required
+            >
+              {relationSubTypes
+                .filter(st => (subTypeOptions[formData.relationType] || []).includes(st.value))
+                .map((st) => (
+                  <option key={st.value} value={st.value}>
+                    {st.label}
+                  </option>
+                ))}
             </select>
           </div>
 
