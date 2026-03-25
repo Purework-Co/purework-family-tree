@@ -383,9 +383,9 @@ export default function RelationsPage() {
 
   const getRelationDescription = (relation: Relation) => {
     if (relation.relationType === 'PASANGAN') {
-      return `${relation.fromPerson.fullname} dan ${relation.toPerson.fullname}`
-    } else {
       return `${relation.fromPerson.fullname} \u2192 ${relation.toPerson.fullname}`
+    } else {
+      return `${relation.toPerson.fullname} \u2192 ${relation.fromPerson.fullname}`
     }
   }
 
@@ -687,11 +687,24 @@ export default function RelationsPage() {
               <p className="text-[#2D3142]">
                 {formData.relationType === 'PASANGAN' ? (
                   <>
-                    <strong>{fromPerson?.fullname}</strong> (Suami) - <strong>{toPerson?.fullname}</strong> (Istri)
+                    <strong>{fromPerson?.fullname}</strong> → <strong>{toPerson?.fullname}</strong>
                   </>
                 ) : (
                   <>
-                    <strong>{toPerson?.fullname}</strong> adalah orang tua dari <strong>{fromPerson?.fullname}</strong>
+                    {(() => {
+                      const couple = parseCoupleId(formData.toPersonId)
+                      if (couple) {
+                        const husband = people.find(p => p.id === couple.husbandId)
+                        const wife = people.find(p => p.id === couple.wifeId)
+                        return (
+                          <>
+                            <strong>{husband?.fullname}</strong> &amp; <strong>{wife?.fullname}</strong> adalah orang tua dari{' '}
+                          </>
+                        )
+                      }
+                      return <><strong>{toPerson?.fullname}</strong> adalah orang tua dari{' '}</>
+                    })()}
+                    <strong>{fromPerson?.fullname}</strong>
                   </>
                 )}
               </p>
