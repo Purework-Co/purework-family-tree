@@ -1,0 +1,13 @@
+#!/bin/sh
+# Prevent committing sensitive files
+BLOCKED=$(git diff --cached --name-only | grep -E '\.env$|opencode\.jsonc$|opencode\.json$' | grep -v '\.env\.example$')
+if [ -n "$BLOCKED" ]; then
+  echo ""
+  echo "ERROR: Attempting to commit sensitive file(s):"
+  echo "$BLOCKED"
+  echo ""
+  echo "These files contain secrets and should NOT be committed."
+  echo "Add them to .gitignore if not already present."
+  echo ""
+  exit 1
+fi
