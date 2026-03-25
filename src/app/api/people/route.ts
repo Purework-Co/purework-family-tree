@@ -15,20 +15,39 @@ export async function GET(request: Request) {
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '20')
     const search = searchParams.get('search') || ''
+    const gender = searchParams.get('gender') || ''
+    const sort = searchParams.get('sort') || 'fullname'
+    const order = (searchParams.get('order') || 'asc') as 'asc' | 'desc'
 
-    const where = search ? {
-      OR: [
-        { fullname: { contains: search, mode: Prisma.QueryMode.insensitive } },
-        { callName: { contains: search, mode: Prisma.QueryMode.insensitive } },
-      ]
-    } : {}
+    const allowedSorts = ['fullname', 'gender', 'dateOfBirth', 'createdAt']
+    const sortField = allowedSorts.includes(sort) ? sort : 'fullname'
+
+    const where: Prisma.PersonWhereInput = {}
+    const conditions: Prisma.PersonWhereInput[] = []
+
+    if (search) {
+      conditions.push({
+        OR: [
+          { fullname: { contains: search, mode: Prisma.QueryMode.insensitive } },
+          { callName: { contains: search, mode: Prisma.QueryMode.insensitive } },
+        ]
+      })
+    }
+
+    if (gender === 'MALE' || gender === 'FEMALE') {
+      conditions.push({ gender })
+    }
+
+    if (conditions.length > 0) {
+      where.AND = conditions
+    }
 
     const [people, total] = await Promise.all([
       prisma.person.findMany({
         where,
         skip: (page - 1) * limit,
         take: limit,
-        orderBy: { fullname: 'asc' },
+        orderBy: { [sortField]: order },
       }),
       prisma.person.count({ where })
     ])
