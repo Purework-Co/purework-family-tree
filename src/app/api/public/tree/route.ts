@@ -79,8 +79,8 @@ export async function GET() {
 
       if (r.relationType === "ORANGTUA_ANAK") {
         const relType = mapRelType(r.relationSubType);
-        fromNode.children.push({ id: r.toPersonId, type: relType });
-        toNode.parents.push({ id: r.fromPersonId, type: relType });
+        fromNode.parents.push({ id: r.toPersonId, type: relType });
+        toNode.children.push({ id: r.fromPersonId, type: relType });
       }
 
       if (r.relationType === "PASANGAN") {
@@ -94,9 +94,9 @@ export async function GET() {
     const childrenByParent = new Map<string, Set<string>>();
     for (const r of relations) {
       if (r.relationType === "ORANGTUA_ANAK") {
-        if (!childrenByParent.has(r.fromPersonId))
-          childrenByParent.set(r.fromPersonId, new Set());
-        childrenByParent.get(r.fromPersonId)!.add(r.toPersonId);
+        if (!childrenByParent.has(r.toPersonId))
+          childrenByParent.set(r.toPersonId, new Set());
+        childrenByParent.get(r.toPersonId)!.add(r.fromPersonId);
       }
     }
 
